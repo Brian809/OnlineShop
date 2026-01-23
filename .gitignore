@@ -1,0 +1,51 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 日志
+logs/
+*.log
+
+# 数据库
+*.sqlite
+*.db
+*.db-journal
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 构建产物
+/dist/
+/build/
+/.cache/
+
+# 前端依赖
+onlineShop/node_modules/
+
+# MacOS
+.DS_Store
+
+# Linux
+*~
+
+# 其他
+coverage/
+
+# 备份文件
+*.bak
+*.tmp
+
+# 生产配置
+backend/.env
+backend/.env.local
