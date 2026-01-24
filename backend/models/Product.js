@@ -39,6 +39,11 @@ const Product = sequelize.define('Product', {
   updatedAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
+  },
+  picCollection: {
+    // use json here
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   tableName: 'products',

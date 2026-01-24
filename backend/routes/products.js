@@ -30,9 +30,9 @@ router.get('/:id', async (req, res) => {
 // 创建产品（管理员）
 router.post('/', async (req, res) => {
   try {
-    const { name, description, price, stock, category, image } = req.body;
+    const { name, description, price, stock, category, imageCollection } = req.body;
     const product = await Product.create({
-      name, description, price, stock, category, image
+      name, description, price, stock, category, imageCollection: imageCollection ? JSON.stringify(imageCollection) : null
     });
     return res.status(201).json(product);
   } catch (err) {
@@ -42,7 +42,7 @@ router.post('/', async (req, res) => {
 });
 
 // 更新产品（管理员）
-router.put('/:id', async (req, res) => {
+router.patch('/:id', async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id);
     if (!product) {

@@ -15,6 +15,10 @@ const sequelize = require('./config/database');
 // 路由
 const authRouter = require('./routes/auth');
 const productsRouter = require('./routes/products');
+const usersRouter = require('./routes/users');
+const adminRouter = require('./routes/admin');
+const normalFunctionsRouter = require('./routes/normalFunctions');
+
 
 var app = express();
 
@@ -51,6 +55,10 @@ sequelize.sync({ alter: process.env.NODE_ENV === 'development' })
 // 路由
 app.use('/api/auth', authRouter);
 app.use('/api/products', productsRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/normal', normalFunctionsRouter);
+
 
 // 健康检查
 app.get('/health', (req, res) => {
