@@ -31,6 +31,10 @@ const router = createRouter({
 // 路由守卫 - 检查用户登录状态
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore();
+
+  // 确保从 localStorage 恢复用户信息
+  userStore.restoreUser();
+
   const isLoggedIn = userStore.isLoggedIn;
   const isAdmin = userStore.user?.isAdmin || false;
 
