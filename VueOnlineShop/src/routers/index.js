@@ -38,6 +38,13 @@ router.beforeEach((to, from, next) => {
   const isLoggedIn = userStore.isLoggedIn;
   const isAdmin = userStore.user?.isAdmin || false;
 
+  console.log('路由守卫:', {
+    to: to.path,
+    isLoggedIn,
+    isAdmin,
+    user: userStore.user
+  });
+
   // 检查是否需要登录
   if (to.meta.requiresAuth && !isLoggedIn) {
     ElMessage.warning('请先登录');
@@ -51,10 +58,7 @@ router.beforeEach((to, from, next) => {
     ElMessage.error('需要管理员权限');
     next({ path: '/' });
   }
-  // 如果已登录用户访问登录页，重定向到首页
-  else if (to.path === '/login' && isLoggedIn) {
-    next({ path: '/' });
-  }
+  // 移除对已登录用户访问登录页的限制 - 允许访问
   else {
     next();
   }

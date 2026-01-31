@@ -67,12 +67,22 @@
         </el-form-item>
         
         <el-form-item>
-          <el-button 
-            type="text" 
+          <el-button
+            type="text"
             @click="toggleMode"
             style="width: 100%"
           >
             {{ isLogin ? '还没有账号？立即注册' : '已有账号？立即登录' }}
+          </el-button>
+        </el-form-item>
+
+        <el-form-item>
+          <el-button
+            type="warning"
+            @click="clearLocalStorage"
+            style="width: 100%; font-size: 12px;"
+          >
+            清除缓存 (如果无法访问登录页)
           </el-button>
         </el-form-item>
       </el-form>
@@ -127,6 +137,18 @@ const validateConfirmPassword = (rule, value, callback) => {
   } else {
     callback()
   }
+}
+
+// 清除 localStorage
+const clearLocalStorage = () => {
+  localStorage.removeItem('user')
+  localStorage.removeItem('token')
+  localStorage.removeItem('remembered_user')
+  userStore.clearUser()
+  ElMessage.success('缓存已清除，请刷新页面')
+  setTimeout(() => {
+    window.location.reload()
+  }, 1000)
 }
 
 const rules = computed(() => ({
