@@ -5,7 +5,10 @@
       <div class="user-management">
         <div class="header">
           <h1>用户管理</h1>
-          <el-button type="primary" @click="fetchUsers">刷新列表</el-button>
+          <div class="header-actions">
+            <el-button type="success" @click="openAddUserDialog">添加用户</el-button>
+            <el-button type="primary" @click="fetchUsers">刷新列表</el-button>
+          </div>
         </div>
 
         <el-table :data="users" style="width: 100%" v-loading="loading">
@@ -27,7 +30,7 @@
               {{ formatDate(row.createdAt) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="150">
+          <el-table-column label="操作" width="200">
             <template #default="{ row }">
               <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
               <el-button type="warning" size="small" @click="toggleDisable(row)">{{ row.isdisabled ? '启用' : '禁用' }}</el-button>
@@ -38,19 +41,114 @@
         <el-empty v-if="!loading && users.length === 0" description="暂无用户数据" />
       </div>
     </div>
+
+    <!-- 添加用户对话框 -->
+    <el-dialog
+      v-model="addUserDialogVisible"
+      title="添加用户"
+      width="500px"
+      @close="resetAddUserForm"
+    >
+      <el-form
+        ref="addUserFormRef"
+        :model="addUserForm"
+        :rules="addUserRules"
+        label-width="100px"
+      >
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="addUserForm.username" placeholder="请输入用户名" clearable />
+        </el-form-item>
+
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="addUserForm.email" placeholder="请输入邮箱" clearable />
+        </el-form-item>
+
+        <el-form-item label="密码" prop="password">
+          <el-input
+            v-model="addUserForm.password"
+            type="password"
+            placeholder="请输入密码"
+            show-password
+            clearable
+          />
+        </el-form-item>
+
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input
+            v-model="addUserForm.confirmPassword"
+            type="password"
+            placeholder="请再次输入密码"
+            show-password
+            clearable
+          />
+        </el-form-item>
+
+        <el-form-item label="管理员权限" prop="isAdmin">
+          <el-switch v-model="addUserForm.isAdmin" />
+          <span style="margin-left: 10px; color: #909399; font-size: 12px;">
+            启用后该用户将拥有管理员权限
+          </span>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="addUserDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleAddUser" :loading="addUserLoading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { get, del, put } from '@/utils/api'
+import { get, del, put, post } from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 import SlideNavigationBar from '@/components/admin/slideNavigationBar.vue'
 
 const userStore = useUserStore()
 const users = ref([])
 const loading = ref(false)
+
+// 添加用户对话框相关
+const addUserDialogVisible = ref(false)
+const addUserLoading = ref(false)
+const addUserFormRef = ref(null)
+const addUserForm = ref({
+  username: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  isAdmin: false
+})
+
+// 验证确认密码
+const validateConfirmPassword = (rule, value, callback) => {
+  if (value !== addUserForm.value.password) {
+    callback(new Error('两次输入的密码不一致'))
+  } else {
+    callback()
+  }
+}
+
+const addUserRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 20, message: '用户名长度在 3 到 20 个字符', trigger: 'blur' }
+  ],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, max: 20, message: '密码长度在 6 到 20 个字符', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入密码', trigger: 'blur' },
+    { validator: validateConfirmPassword, trigger: 'blur' }
+  ]
+}
 
 // 获取用户列表
 const fetchUsers = async () => {
@@ -63,6 +161,59 @@ const fetchUsers = async () => {
     console.error('获取用户列表错误:', error)
   } finally {
     loading.value = false
+  }
+}
+
+// 打开添加用户对话框
+const openAddUserDialog = () => {
+  addUserDialogVisible.value = true
+}
+
+// 重置添加用户表单
+const resetAddUserForm = () => {
+  addUserForm.value = {
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    isAdmin: false
+  }
+  addUserFormRef.value?.clearValidate()
+}
+
+// 添加用户
+const handleAddUser = async () => {
+  if (!addUserFormRef.value) return
+
+  try {
+    // 表单验证
+    await addUserFormRef.value.validate()
+
+    addUserLoading.value = true
+
+    const data = await post('/admin/users', {
+      username: addUserForm.value.username,
+      email: addUserForm.value.email,
+      password: addUserForm.value.password,
+      confirmPassword: addUserForm.value.confirmPassword,
+      isAdmin: addUserForm.value.isAdmin
+    })
+
+    ElMessage.success('用户创建成功')
+    addUserDialogVisible.value = false
+    resetAddUserForm()
+    // 刷新列表
+    await fetchUsers()
+  } catch (error) {
+    if (error && typeof error === 'object' && error.errorFields) {
+      // 表单验证失败
+      console.log('表单验证未通过')
+    } else {
+      ElMessage.error(error.message || '创建用户失败')
+      console.error('创建用户错误:', error)
+    }
+  } finally {
+    addUserLoading.value = false
   }
 }
 
@@ -172,5 +323,10 @@ onMounted(() => {
   margin: 0;
   color: #303133;
   font-size: 24px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
 }
 </style>

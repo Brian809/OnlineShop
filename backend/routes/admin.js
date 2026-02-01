@@ -26,6 +26,64 @@ router.get('/users', passport.authenticate('jwt', { session: false }), async (re
     }
 });
 
+// 创建用户（仅管理员可访问）
+router.post('/users', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        // 检查是否为管理员
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ message: '无权限创建用户' });
+        }
+
+        const { username, email, password, confirmPassword, isAdmin } = req.body;
+
+        // 基本验证
+        if (!username || !email || !password || !confirmPassword) {
+            return res.status(400).json({ message: '缺少必要字段' });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({ message: '密码不一致' });
+        }
+
+        // 检查用户名是否已存在
+        const existingUsername = await User.findOne({ where: { username } });
+        if (existingUsername) {
+            return res.status(400).json({ message: '用户名已被使用' });
+        }
+
+        // 检查邮箱是否已存在
+        const existingEmail = await User.findOne({ where: { email } });
+        if (existingEmail) {
+            return res.status(400).json({ message: '邮箱已被注册' });
+        }
+
+        // 密码加密
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 创建用户
+        const user = await User.create({
+            username,
+            email,
+            password: hashedPassword,
+            isAdmin: isAdmin || false  // 只有管理员可以设置 isAdmin 字段
+        });
+
+        return res.status(201).json({
+            message: '用户创建成功',
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                isAdmin: user.isAdmin,
+                isdisabled: user.isdisabled
+            }
+        });
+    } catch (err) {
+        console.error('创建用户错误:', err);
+        return res.status(500).json({ message: '创建用户失败', error: err.message });
+    }
+});
+
 // 删除用户（仅管理员可访问）
 router.delete('/users/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
     try {
