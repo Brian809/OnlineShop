@@ -30,8 +30,8 @@ app.use(cors({
 
 // 中间件
 app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10mb' })); // 增加 JSON 请求体大小限制
+app.use(express.urlencoded({ extended: false, limit: '10mb' })); // 增加 URL 编码请求体大小限制
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
