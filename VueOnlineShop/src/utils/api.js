@@ -18,8 +18,12 @@ async function request(endpoint, options = {}) {
     ...options.headers
   }
 
-  // 如果有 token，自动添加到 Authorization header
-  if (userStore.token) {
+  // 登录和注册接口不需要携带 token
+  const isAuthEndpoint = endpoint.startsWith('/auth/login') || 
+                         endpoint.startsWith('/auth/register')
+
+  // 如果有 token 且不是认证接口，自动添加到 Authorization header
+  if (userStore.token && !isAuthEndpoint) {
     headers.Authorization = `Bearer ${userStore.token}`
   }
 
