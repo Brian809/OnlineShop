@@ -7,23 +7,23 @@
         ref="formRef"
         :model="form"
         :rules="rules"
-        label-width="80px"
+        label-width="90px"
         class="login-form"
         @submit.prevent="handleSubmit"
       >
-        <el-form-item label="账号" prop="email">
+        <el-form-item :label="isLogin ? '登录账号' : '邮箱地址'" prop="email">
           <el-input
             v-model="form.email"
-            placeholder="请输入邮箱或用户名"
+            :placeholder="isLogin ? '请输入邮箱或用户名登录' : '用于登录和接收通知'"
             clearable
             @keyup.enter="handleSubmit"
           />
         </el-form-item>
 
-        <el-form-item label="用户名" prop="username" v-if="!isLogin">
+        <el-form-item label="设置用户名" prop="username" v-if="!isLogin">
           <el-input
             v-model="form.username"
-            placeholder="请输入用户名"
+            placeholder="用于标识您的身份（3-20字符）"
             clearable
             @keyup.enter="handleSubmit"
           />
@@ -33,7 +33,7 @@
           <el-input 
             v-model="form.password" 
             type="password" 
-            placeholder="请输入密码"
+            :placeholder="isLogin ? '请输入您的密码' : '设置登录密码（6-20字符）'"
             show-password
             clearable
             @keyup.enter="handleSubmit"
@@ -44,7 +44,7 @@
           <el-input 
             v-model="form.confirmPassword" 
             type="password" 
-            placeholder="请再次输入密码"
+            placeholder="请再次输入密码确保一致"
             show-password
             clearable
             @keyup.enter="handleSubmit"
@@ -62,13 +62,13 @@
             :loading="loading"
             style="width: 100%"
           >
-            {{ isLogin ? '登录' : '注册' }}
+            {{ isLogin ? '立即登录' : '注册账号' }}
           </el-button>
         </el-form-item>
         
         <el-form-item>
-          <el-button
-            type="text"
+          <el-button 
+            type="text" 
             @click="toggleMode"
             style="width: 100%"
           >
@@ -76,16 +76,17 @@
           </el-button>
         </el-form-item>
 
-        <el-form-item>
-          <el-button
-            type="warning"
-            @click="clearLocalStorage"
-            style="width: 100%; font-size: 12px;"
-          >
-            清除缓存 (如果无法访问登录页)
-          </el-button>
+        <el-form-item v-if="!isLogin" class="tips">
+          <div class="tip-text">
+            <el-icon><InfoFilled /></el-icon>
+            <span>注册后可使用邮箱或用户名登录</span>
+          </div>
         </el-form-item>
       </el-form>
+      
+      <div class="clear-cache" v-if="isLogin">
+        <el-button type="text" size="small" @click="handleClearCache">清除缓存</el-button>
+      </div>
     </div>
   </div>
 </template>
@@ -94,6 +95,7 @@
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { InfoFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { post } from '@/utils/api'
 
@@ -111,6 +113,15 @@ const form = reactive({
   confirmPassword: '',
   rememberMe: false
 })
+
+// 清除缓存
+const handleClearCache = () => {
+  localStorage.removeItem('user')
+  localStorage.removeItem('token')
+  localStorage.removeItem('remembered_user')
+  userStore.clearUser()
+  ElMessage.success('缓存已清除')
+}
 
 // 从localStorage加载记住的密码
 const loadRememberedPassword = () => {
@@ -319,5 +330,39 @@ h1 {
 
 :deep(.el-button--text:hover) {
   color: #764ba2;
+}
+
+.tips {
+  margin-top: 10px;
+}
+
+.tip-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #909399;
+  font-size: 13px;
+  padding: 8px 12px;
+  background-color: #f4f4f5;
+  border-radius: 4px;
+}
+
+.tip-text .el-icon {
+  color: #409eff;
+  font-size: 16px;
+}
+
+.clear-cache {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.clear-cache :deep(.el-button--text) {
+  color: #909399;
+  font-size: 12px;
+}
+
+.clear-cache :deep(.el-button--text:hover) {
+  color: #606266;
 }
 </style>
