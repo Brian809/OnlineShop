@@ -94,6 +94,17 @@ export function put(endpoint, data, options = {}) {
 }
 
 /**
+ * PATCH 请求
+ */
+export function patch(endpoint, data, options = {}) {
+  return request(endpoint, {
+    ...options,
+    method: 'PATCH',
+    body: JSON.stringify(data)
+  })
+}
+
+/**
  * DELETE 请求
  */
 export function del(endpoint, options = {}) {
