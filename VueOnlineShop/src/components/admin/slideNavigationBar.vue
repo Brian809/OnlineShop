@@ -1,21 +1,18 @@
 <template>
   <div class="sidebar-container">
+    <div class="collapse-toggle" @click="toggleCollapse">
+      <el-icon class="toggle-icon">
+        <Menu />
+      </el-icon>
+    </div>
     <el-menu
       :default-active="activeMenu"
       class="el-menu-vertical-demo"
       :collapse="isCollapse"
       @open="handleOpen"
       @close="handleClose"
-      @select="handleSelect"
       router
     >
-      <el-menu-item index="collapse" @click="toggleCollapse" class="collapse-menu-item">
-        <el-icon>
-          <component :is="isCollapse ? 'Expand' : 'Fold'" />
-        </el-icon>
-        <template #title>{{ isCollapse ? '展开菜单' : '收起菜单' }}</template>
-      </el-menu-item>
-
       <el-sub-menu index="user">
         <template #title>
           <el-icon><user /></el-icon>
@@ -89,8 +86,7 @@ import {
   Document,
   House,
   SwitchButton,
-  Expand,
-  Fold,
+  Menu,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -106,10 +102,6 @@ const handleOpen = (key, keyPath) => {
 
 const handleClose = (key, keyPath) => {
   console.log('菜单收起:', key, keyPath)
-}
-
-const handleSelect = (key, keyPath) => {
-  console.log('菜单选择:', key, keyPath)
 }
 
 const toggleCollapse = () => {
@@ -153,6 +145,25 @@ onMounted(() => {
   overflow-y: auto;
 }
 
+.collapse-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  border-bottom: 1px solid #e6e6e6;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.collapse-toggle:hover {
+  background-color: #f5f5f5;
+}
+
+.toggle-icon {
+  font-size: 24px;
+  color: #409eff;
+}
+
 .el-menu-vertical-demo {
   flex: 1;
   border-right: none;
@@ -160,21 +171,6 @@ onMounted(() => {
 
 .el-menu-vertical-demo:not(.el-menu--collapse) {
   width: 240px;
-}
-
-.collapse-menu-item {
-  color: #409eff;
-  background-color: #ecf5ff;
-  border-bottom: 1px solid #e6e6e6;
-}
-
-.collapse-menu-item:hover {
-  background-color: #d9ecff !important;
-}
-
-.collapse-menu-item.is-active {
-  color: #409eff;
-  background-color: #ecf5ff;
 }
 
 .logout-item {
