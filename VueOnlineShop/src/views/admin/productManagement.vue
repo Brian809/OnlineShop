@@ -93,7 +93,20 @@
         </el-form-item>
 
         <el-form-item label="商品图片" prop="image">
-          <ImageUpload v-model="productForm.image" />
+          <el-upload
+            v-model:file-list="imageFileList"
+            :auto-upload="false"
+            :on-change="handleImageChange"
+            :on-remove="handleImageRemove"
+            :limit="1"
+            list-type="picture"
+            accept="image/*"
+          >
+            <el-button type="primary">选择图片</el-button>
+            <template #tip>
+              <div class="el-upload__tip">支持 JPG/PNG 图片，不超过 2MB</div>
+            </template>
+          </el-upload>
         </el-form-item>
 
         <el-form-item label="商品描述" prop="description">
@@ -119,7 +132,6 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { get, post, patch, del } from '@/utils/api'
 import SlideNavigationBar from '@/components/admin/slideNavigationBar.vue'
-import ImageUpload from '@/components/ImageUpload.vue'
 
 const products = ref([])
 const loading = ref(false)
@@ -130,6 +142,7 @@ const isEditMode = ref(false)
 const productLoading = ref(false)
 const productFormRef = ref(null)
 const currentProductId = ref(null)
+const imageFileList = ref([])
 
 const productForm = ref({
   name: '',
@@ -188,7 +201,39 @@ const handleEdit = (product) => {
     image: product.image || '',
     description: product.description || ''
   }
+  // 如果有图片，设置到文件列表
+  if (product.image) {
+    imageFileList.value = [{
+      name: '商品图片',
+      url: product.image
+    }]
+  } else {
+    imageFileList.value = []
+  }
   productDialogVisible.value = true
+}
+
+// 图片变化处理
+const handleImageChange = (file) => {
+  // 验证文件大小（2MB）
+  const isLt2M = file.size / 1024 / 1024 < 2
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB')
+    return false
+  }
+
+  // 将图片转换为 base64
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    productForm.value.image = e.target.result
+  }
+  reader.readAsDataURL(file.raw)
+}
+
+// 图片移除处理
+const handleImageRemove = () => {
+  productForm.value.image = ''
+  imageFileList.value = []
 }
 
 // 删除商品
@@ -260,6 +305,7 @@ const resetProductForm = () => {
     image: '',
     description: ''
   }
+  imageFileList.value = []
   productFormRef.value?.clearValidate()
 }
 
