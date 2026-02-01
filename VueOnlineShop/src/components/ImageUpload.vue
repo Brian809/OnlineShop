@@ -88,6 +88,7 @@ const handleFileChange = (file) => {
 }
 
 const uploadImage = async (base64Data) => {
+  console.log('开始上传图片，数据长度:', base64Data.length)
   uploading.value = true
   uploadProgress.value = 30
 
@@ -99,6 +100,7 @@ const uploadImage = async (base64Data) => {
       }
     }, 100)
 
+    console.log('调用上传 API...')
     const data = await post('/normal/uploadImage', {
       imageData: base64Data
     })
@@ -106,6 +108,7 @@ const uploadImage = async (base64Data) => {
     clearInterval(progressInterval)
     uploadProgress.value = 100
 
+    console.log('上传成功，返回数据:', data)
     imageUrl.value = data.imageUrl
     ElMessage.success('图片上传成功')
 
@@ -114,10 +117,10 @@ const uploadImage = async (base64Data) => {
       uploadProgress.value = 0
     }, 500)
   } catch (error) {
+    console.error('图片上传错误:', error)
     uploading.value = false
     uploadProgress.value = 0
     ElMessage.error(error.message || '图片上传失败')
-    console.error('图片上传错误:', error)
   }
 }
 
