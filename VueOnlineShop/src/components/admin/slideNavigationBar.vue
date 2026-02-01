@@ -29,10 +29,6 @@
           <el-icon><goods /></el-icon>
           <span>商品管理</span>
         </template>
-        <el-menu-item index="/admin/products/create">
-          <el-icon><plus /></el-icon>
-          <span>创建商品</span>
-        </el-menu-item>
         <el-menu-item index="/admin/products">
           <el-icon><list /></el-icon>
           <span>商品列表</span>
