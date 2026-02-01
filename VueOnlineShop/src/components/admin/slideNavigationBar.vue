@@ -143,11 +143,14 @@ onMounted(() => {
 
 <style scoped>
 .sidebar-container {
-  height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: #fff;
   border-right: 1px solid #e6e6e6;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .el-menu-vertical-demo {

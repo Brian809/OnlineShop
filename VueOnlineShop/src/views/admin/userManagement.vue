@@ -1,27 +1,32 @@
 <template>
-  <div class="user-management">
-    <div class="header">
-      <h1>用户管理</h1>
-      <el-button type="primary" @click="fetchUsers">刷新列表</el-button>
+  <div class="admin-layout">
+    <slide-navigation-bar />
+    <div class="admin-content">
+      <div class="user-management">
+        <div class="header">
+          <h1>用户管理</h1>
+          <el-button type="primary" @click="fetchUsers">刷新列表</el-button>
+        </div>
+
+        <el-table :data="users" style="width: 100%" v-loading="loading">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column prop="username" label="用户名" width="150" />
+          <el-table-column prop="email" label="邮箱" width="250" />
+          <el-table-column prop="createdAt" label="注册时间" width="180">
+            <template #default="{ row }">
+              {{ formatDate(row.createdAt) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="150">
+            <template #default="{ row }">
+              <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <el-empty v-if="!loading && users.length === 0" description="暂无用户数据" />
+      </div>
     </div>
-
-    <el-table :data="users" style="width: 100%" v-loading="loading">
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="username" label="用户名" width="150" />
-      <el-table-column prop="email" label="邮箱" width="250" />
-      <el-table-column prop="createdAt" label="注册时间" width="180">
-        <template #default="{ row }">
-          {{ formatDate(row.createdAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="150">
-        <template #default="{ row }">
-          <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <el-empty v-if="!loading && users.length === 0" description="暂无用户数据" />
   </div>
 </template>
 
@@ -30,6 +35,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { get, del } from '@/utils/api'
 import { useUserStore } from '@/stores/user'
+import SlideNavigationBar from '@/components/admin/slideNavigationBar.vue'
 
 const userStore = useUserStore()
 const users = ref([])
@@ -94,10 +100,25 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.user-management {
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.admin-content {
+  flex: 1;
   padding: 20px;
+  background-color: #f5f5f5;
+  overflow-y: auto;
+}
+
+.user-management {
   max-width: 1200px;
   margin: 0 auto;
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
 .header {
@@ -105,10 +126,13 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e6e6e6;
 }
 
 .header h1 {
   margin: 0;
-  color: #333;
+  color: #303133;
+  font-size: 24px;
 }
 </style>
