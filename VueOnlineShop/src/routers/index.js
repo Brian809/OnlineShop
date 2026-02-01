@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus';
 import Home from '../views/Home.vue';
 import Login from '../views/Login.vue';
 import UserManagement from '../views/admin/userManagement.vue';
+import ProductManagement from '../views/admin/productManagement.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -23,6 +24,12 @@ const router = createRouter({
       path: '/admin/users',
       name: 'UserManagement',
       component: UserManagement,
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/products',
+      name: 'ProductManagement',
+      component: ProductManagement,
       meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
