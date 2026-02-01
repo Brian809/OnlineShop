@@ -223,6 +223,7 @@ const handleLogin = async () => {
       id: data.user.id,
       username: data.user.username,
       email: data.user.email,
+      isAdmin: data.user.isAdmin,
       token: data.token
     })
 

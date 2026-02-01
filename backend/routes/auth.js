@@ -62,7 +62,8 @@ router.post('/login', passport.authenticate('local', { session: false }), (req, 
       user: {
         id: req.user.id,
         username: req.user.username,
-        email: req.user.email
+        email: req.user.email,
+        isAdmin: req.user.isAdmin
       }
     });
   } catch (err) {
