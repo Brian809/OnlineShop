@@ -15,16 +15,23 @@ passport.use(new LocalStrategy(
   },
   async (email, password, done) => {
     try {
-      // 尝试通过 email 查找用户
-      let user = await User.findOne({ email });
+      // 判断输入的是 email 还是 username
+      const isEmail = email.includes('@');
 
-      // 如果 email 查找不到，尝试通过 username 查找
-      if (!user) {
+      let user;
+
+      if (isEmail) {
+        // 如果包含 @，优先按 email 查找
+        user = await User.findOne({ email });
+        if (!user) {
+          return done(null, false, { message: '邮箱或用户名不存在' });
+        }
+      } else {
+        // 如果不包含 @，按 username 查找
         user = await User.findOne({ username: email });
-      }
-
-      if (!user) {
-        return done(null, false, { message: '用户不存在' });
+        if (!user) {
+          return done(null, false, { message: '邮箱或用户名不存在' });
+        }
       }
 
       // 验证密码
