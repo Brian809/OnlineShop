@@ -11,10 +11,10 @@
         class="login-form"
         @submit.prevent="handleSubmit"
       >
-        <el-form-item label="邮箱" prop="email">
+        <el-form-item label="账号" prop="email">
           <el-input
             v-model="form.email"
-            placeholder="请输入邮箱"
+            placeholder="请输入邮箱或用户名"
             clearable
             @keyup.enter="handleSubmit"
           />

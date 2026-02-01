@@ -10,21 +10,26 @@ require('dotenv').config();
 // Local Strategy: 用于登录
 passport.use(new LocalStrategy(
   {
-    usernameField: 'email',
+    usernameField: 'email', // 使用 email 作为主字段名
     passwordField: 'password'
   },
   async (email, password, done) => {
     try {
-      // 从数据库查询用户
-      const user = await User.findOne({ email });
-      
+      // 尝试通过 email 查找用户
+      let user = await User.findOne({ email });
+
+      // 如果 email 查找不到，尝试通过 username 查找
+      if (!user) {
+        user = await User.findOne({ username: email });
+      }
+
       if (!user) {
         return done(null, false, { message: '用户不存在' });
       }
 
       // 验证密码
       const isValidPassword = await bcrypt.compare(password, user.password);
-      
+
       if (!isValidPassword) {
         return done(null, false, { message: '密码错误' });
       }
