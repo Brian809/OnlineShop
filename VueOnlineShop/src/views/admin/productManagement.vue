@@ -370,3 +370,16 @@ onMounted(() => {
   gap: 10px;
 }
 </style>
+
+<style>
+/* 确保上传组件的图片预览使用 object-fit: cover */
+.el-upload-list__item-thumbnail {
+  object-fit: cover !important;
+  object-position: center !important;
+}
+
+.el-upload-list__item-img {
+  object-fit: cover !important;
+  object-position: center !important;
+}
+</style>
