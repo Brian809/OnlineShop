@@ -20,18 +20,21 @@ router.post('/uploadImage', passport.authenticate('jwt', { session: false }), as
     // 这里可以添加图片处理和存储逻辑
     // 例如，将图片保存到服务器或云存储，并返回图片URL
 
+    let imageUrl;
+
     if (process.env.NODE_ENV === 'development') {
       // save to static folder in development
-        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, 'base64');
-        const imageName = `image_${Date.now()}.png`;
-        const imagePath = `./static/${imageName}`;
-        fs.writeFileSync(imagePath, buffer);
-        const imageUrl = `${req.protocol}://${req.get('host')}/static/${imageName}`;
+      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, 'base64');
+      const imageName = `image_${Date.now()}.png`;
+      const imagePath = `./static/${imageName}`;
+      fs.writeFileSync(imagePath, buffer);
+      imageUrl = `${req.protocol}://${req.get('host')}/static/${imageName}`;
+    } else {
+      // 生产环境使用配置的图片 URL 或云存储
+      imageUrl = process.env.IMAGE_URL || 'http://example.com/path/to/image.jpg';
     }
-    else{
-    const imageUrl = process.env.IMAGE_URL || 'http://example.com/path/to/image.jpg'; // 示例URL
-    }
+
     return res.status(201).json({
       message: '图片上传成功',
       imageUrl
