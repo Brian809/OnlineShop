@@ -16,7 +16,7 @@ router.get('/users', passport.authenticate('jwt', { session: false }), async (re
         }
 
         const users = await User.findAll({
-            attributes: ['id', 'username', 'email', 'createdAt']
+            attributes: ['id', 'username', 'email', 'createdAt', 'isdisabled','isAdmin']
         });
 
         return res.json({ users });
@@ -48,6 +48,36 @@ router.delete('/users/:id', passport.authenticate('jwt', { session: false }), as
         return res.status(500).json({ message: '删除用户失败', error: err.message });
     }
 });
+
+// 禁用&启用用户（仅管理员可访问）
+router.put('/users/:id/toogleDisable', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        // 检查是否为管理员
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ message: '无权限访问此资源' });
+        }
+
+
+        const userId = req.params.id;
+        const user = await User.findByPk(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: '用户未找到' });
+        }
+        if (user.isdisabled) {
+            user.isdisabled = false;
+        } else {
+            user.isdisabled = true;
+        }
+        await user.save();
+
+        return res.json({ message: '用户状态已切换', isdisabled: user.isdisabled });
+    } catch (err) {
+        console.error('禁用用户错误:', err);
+        return res.status(500).json({ message: '禁用用户失败', error: err.message });
+    }
+});
+
 
 
 

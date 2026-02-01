@@ -12,6 +12,16 @@
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="username" label="用户名" width="150" />
           <el-table-column prop="email" label="邮箱" width="250" />
+          <el-table-column prop="isAdmin" label="是否为管理员" width="120">
+            <template #default="{ row }">
+              {{ row.isAdmin ? '是' : '否' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="isdisabled" label="账户状态" width="120">
+            <template #default="{ row }">
+              {{ row.isdisabled ? '已禁用' : '正常' }}
+            </template>
+          </el-table-column>
           <el-table-column prop="createdAt" label="注册时间" width="180">
             <template #default="{ row }">
               {{ formatDate(row.createdAt) }}
@@ -20,6 +30,7 @@
           <el-table-column label="操作" width="150">
             <template #default="{ row }">
               <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+              <el-button type="warning" size="small" @click="toggleDisable(row)">{{ row.isdisabled ? '启用' : '禁用' }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -33,7 +44,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { get, del } from '@/utils/api'
+import { get, del, put } from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 import SlideNavigationBar from '@/components/admin/slideNavigationBar.vue'
 
@@ -76,6 +87,33 @@ const handleDelete = async (user) => {
     if (error !== 'cancel') {
       ElMessage.error(error.message || '删除失败')
       console.error('删除用户错误:', error)
+    }
+  }
+}
+
+// 禁用和启用用户
+const toggleDisable = async (user) => {
+  try {
+    const action = user.isdisabled ? '启用' : '禁用'
+    await ElMessageBox.confirm(
+      `确定要${action}用户 "${user.username}" 吗？`,
+      `确认${action}`,
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    // 使用后端正确的 API 路径
+    const data = await put(`/admin/users/${user.id}/toogleDisable`, {})
+    ElMessage.success(`${action}成功`)
+    // 刷新列表
+    await fetchUsers()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || `${action}失败`)
+      console.error(`${action}用户错误:`, error)
     }
   }
 }

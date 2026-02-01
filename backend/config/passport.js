@@ -34,6 +34,11 @@ passport.use(new LocalStrategy(
         }
       }
 
+      // 检查用户是否被禁用
+      if (user.isdisabled) {
+        return done(null, false, { message: '账户已被禁用，请联系管理员' });
+      }
+
       // 验证密码
       const isValidPassword = await bcrypt.compare(password, user.password);
 

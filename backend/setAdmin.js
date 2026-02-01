@@ -9,8 +9,10 @@ const User = require('./models/User');
     const user = await User.findByPk(1);
     if (user) {
       user.isAdmin = true;
+      user.isdisabled = false; // 确保管理员账户未被禁用
       await user.save();
       console.log('管理员权限设置成功！用户:', user.username);
+      console.log('账户状态: 已启用');
     } else {
       console.log('未找到 ID 为 1 的用户');
     }

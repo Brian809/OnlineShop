@@ -51,6 +51,10 @@ const User = sequelize.define('User', {
   pic: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  isdisabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
   tableName: 'users',

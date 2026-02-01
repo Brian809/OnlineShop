@@ -224,6 +224,7 @@ const handleLogin = async () => {
       username: data.user.username,
       email: data.user.email,
       isAdmin: data.user.isAdmin,
+      isdisabled: data.user.isdisabled,
       token: data.token
     })
 
