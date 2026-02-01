@@ -93,7 +93,7 @@
         </el-form-item>
 
         <el-form-item label="商品图片" prop="image">
-          <el-input v-model="productForm.image" placeholder="请输入图片 URL" clearable />
+          <ImageUpload v-model="productForm.image" />
         </el-form-item>
 
         <el-form-item label="商品描述" prop="description">
@@ -119,6 +119,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { get, post, patch, del } from '@/utils/api'
 import SlideNavigationBar from '@/components/admin/slideNavigationBar.vue'
+import ImageUpload from '@/components/ImageUpload.vue'
 
 const products = ref([])
 const loading = ref(false)
