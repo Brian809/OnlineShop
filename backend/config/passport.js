@@ -22,13 +22,13 @@ passport.use(new LocalStrategy(
 
       if (isEmail) {
         // 如果包含 @，优先按 email 查找
-        user = await User.findOne({ email });
+        user = await User.findOne({ where: { email } });
         if (!user) {
           return done(null, false, { message: '邮箱或用户名不存在' });
         }
       } else {
         // 如果不包含 @，按 username 查找
-        user = await User.findOne({ username: email });
+        user = await User.findOne({ where: { username: email } });
         if (!user) {
           return done(null, false, { message: '邮箱或用户名不存在' });
         }
@@ -62,7 +62,7 @@ passport.use(new JwtStrategy(
   async (jwtPayload, done) => {
     try {
       // 从数据库查询用户
-      const user = await User.findOne({ id: jwtPayload.id });
+      const user = await User.findOne({ where: { id: jwtPayload.id } });
 
       if (user) {
         return done(null, user);
