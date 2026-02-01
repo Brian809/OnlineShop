@@ -26,7 +26,7 @@ const Product = sequelize.define('Product', {
     type: DataTypes.STRING
   },
   image: {
-    type: DataTypes.STRING
+    type: DataTypes.TEXT
   },
   rating: {
     type: DataTypes.FLOAT,
@@ -41,8 +41,7 @@ const Product = sequelize.define('Product', {
     defaultValue: DataTypes.NOW
   },
   picCollection: {
-    // use json here
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,
     allowNull: true
   }
 }, {
