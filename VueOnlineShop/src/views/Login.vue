@@ -11,19 +11,19 @@
         class="login-form"
         @submit.prevent="handleSubmit"
       >
-        <el-form-item label="用户名" prop="username">
-          <el-input 
-            v-model="form.username" 
-            placeholder="请输入用户名"
+        <el-form-item label="邮箱" prop="email">
+          <el-input
+            v-model="form.email"
+            placeholder="请输入邮箱"
             clearable
             @keyup.enter="handleSubmit"
           />
         </el-form-item>
-        
-        <el-form-item label="邮箱" prop="email" v-if="!isLogin">
-          <el-input 
-            v-model="form.email" 
-            placeholder="请输入邮箱"
+
+        <el-form-item label="用户名" prop="username" v-if="!isLogin">
+          <el-input
+            v-model="form.username"
+            placeholder="请输入用户名"
             clearable
             @keyup.enter="handleSubmit"
           />
@@ -118,7 +118,7 @@ const loadRememberedPassword = () => {
   if (remembered) {
     try {
       const data = JSON.parse(remembered)
-      form.username = data.username || ''
+      form.email = data.email || ''
       form.password = data.password || ''
       form.rememberMe = true
     } catch (error) {
@@ -214,7 +214,7 @@ const handleSubmit = async () => {
 const handleLogin = async () => {
   try {
     const data = await post('/auth/login', {
-      username: form.username,
+      email: form.email,
       password: form.password
     })
 
@@ -229,7 +229,7 @@ const handleLogin = async () => {
     // 记住密码功能
     if (form.rememberMe) {
       localStorage.setItem('remembered_user', JSON.stringify({
-        username: form.username,
+        email: form.email,
         password: form.password
       }))
     } else {
@@ -239,7 +239,7 @@ const handleLogin = async () => {
     ElMessage.success('登录成功')
     router.push('/')
   } catch (error) {
-    ElMessage.error(error.message || '登录失败，请检查用户名和密码')
+    ElMessage.error(error.message || '登录失败，请检查邮箱和密码')
     console.error('登录错误:', error)
     throw error
   }

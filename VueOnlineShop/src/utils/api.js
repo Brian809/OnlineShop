@@ -30,12 +30,29 @@ async function request(endpoint, options = {}) {
 
   try {
     const response = await fetch(url, config)
-    const data = await response.json()
 
+    // 检查响应状态
     if (!response.ok) {
-      throw new Error(data.message || '请求失败')
+      // 尝试解析错误信息
+      let errorMessage = '请求失败'
+      try {
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json()
+          errorMessage = data.message || errorMessage
+        } else {
+          // 如果不是 JSON，尝试读取文本
+          const text = await response.text()
+          errorMessage = text || errorMessage
+        }
+      } catch (e) {
+        errorMessage = `请求失败 (${response.status})`
+      }
+      throw new Error(errorMessage)
     }
 
+    // 解析成功响应
+    const data = await response.json()
     return data
   } catch (error) {
     console.error('API 请求错误:', error)
