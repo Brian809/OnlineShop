@@ -2,6 +2,41 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const passport = require('passport');
+const fs = require('fs');
+const path = require('path');
+
+// 处理 base64 图片并保存到静态文件夹
+function saveBase64Image(base64Data) {
+  if (!base64Data || !base64Data.startsWith('data:image/')) {
+    return '';
+  }
+
+  // 提取 MIME 类型和 base64 数据
+  const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+  if (!matches) {
+    return '';
+  }
+
+  const extension = matches[1];
+  const imageData = matches[2];
+  const buffer = Buffer.from(imageData, 'base64');
+
+  // 生成文件名
+  const imageName = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
+  const imagePath = '/home/brian/文档/Projects/OnlineShop/backend/public/static/' + imageName;
+
+  // 确保目录存在
+  const dir = path.dirname(imagePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  // 保存文件
+  fs.writeFileSync(imagePath, buffer);
+
+  // 返回 URI
+  return `/static/${imageName}`;
+}
 
 // 获取所有产品（公开）
 router.get('/', async (req, res) => {
@@ -43,15 +78,32 @@ router.post('/', passport.authenticate('jwt', { session: false }), async (req, r
       return res.status(400).json({ message: '商品名称和价格为必填项' });
     }
 
+    // 处理主图片 - 如果是 base64，保存到静态文件夹
+    let imageUri = '';
+    if (image) {
+      imageUri = saveBase64Image(image);
+    }
+
+    // 处理图片集合 - 如果有 base64，保存到静态文件夹
+    let picCollectionUris = [];
+    if (picCollection && Array.isArray(picCollection)) {
+      picCollectionUris = picCollection.map(img => {
+        if (img && img.startsWith('data:image/')) {
+          return saveBase64Image(img);
+        }
+        return img;
+      });
+    }
+
     const product = await Product.create({
       name,
       description,
       price,
       stock: stock || 0,
       category: category || '其他',
-      image: image || '',
+      image: imageUri,
       rating: rating || 0,
-      picCollection: picCollection ? JSON.stringify(picCollection) : null
+      picCollection: picCollectionUris.length > 0 ? JSON.stringify(picCollectionUris) : null
     });
 
     return res.status(201).json({
@@ -77,12 +129,25 @@ router.patch('/:id', passport.authenticate('jwt', { session: false }), async (re
       return res.status(404).json({ message: '产品不存在' });
     }
 
-    // 如果有 picCollection，转换为 JSON 字符串
-    if (req.body.picCollection) {
-      req.body.picCollection = JSON.stringify(req.body.picCollection);
+    const updateData = { ...req.body };
+
+    // 处理主图片 - 如果是 base64，保存到静态文件夹
+    if (updateData.image && updateData.image.startsWith('data:image/')) {
+      updateData.image = saveBase64Image(updateData.image);
     }
 
-    await product.update(req.body);
+    // 处理图片集合 - 如果有 base64，保存到静态文件夹
+    if (updateData.picCollection && Array.isArray(updateData.picCollection)) {
+      updateData.picCollection = updateData.picCollection.map(img => {
+        if (img && img.startsWith('data:image/')) {
+          return saveBase64Image(img);
+        }
+        return img;
+      });
+      updateData.picCollection = JSON.stringify(updateData.picCollection);
+    }
+
+    await product.update(updateData);
 
     return res.json({
       message: '商品更新成功',
