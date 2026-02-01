@@ -6,6 +6,7 @@ const passport = require('passport');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 router.post('/uploadImage', passport.authenticate('jwt', { session: false }), async (req, res) => {
@@ -32,7 +33,8 @@ router.post('/uploadImage', passport.authenticate('jwt', { session: false }), as
       const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(base64Data, 'base64');
       const imageName = `image_${Date.now()}.png`;
-      const imagePath = `./static/${imageName}`;
+      // 使用绝对路径，确保路径正确
+      const imagePath = path.join(__dirname, '../public/static', imageName);
       console.log('保存路径:', imagePath);
       fs.writeFileSync(imagePath, buffer);
       imageUrl = `${req.protocol}://${req.get('host')}/static/${imageName}`;
