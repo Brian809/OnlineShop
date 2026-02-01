@@ -5,37 +5,44 @@ const passport = require('passport');
 const fs = require('fs');
 const path = require('path');
 
-// 处理 base64 图片并保存到静态文件夹
+// 处理 base64 图片并保存到静态文件夹（仅开发环境）
 function saveBase64Image(base64Data) {
   if (!base64Data || !base64Data.startsWith('data:image/')) {
     return '';
   }
 
-  // 提取 MIME 类型和 base64 数据
-  const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
-  if (!matches) {
-    return '';
+  // 开发环境：保存到本地静态文件夹
+  if (process.env.NODE_ENV === 'development') {
+    // 提取 MIME 类型和 base64 数据
+    const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!matches) {
+      return '';
+    }
+
+    const extension = matches[1];
+    const imageData = matches[2];
+    const buffer = Buffer.from(imageData, 'base64');
+
+    // 生成文件名
+    const imageName = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
+    const imagePath = '/home/brian/文档/Projects/OnlineShop/backend/public/static/' + imageName;
+
+    // 确保目录存在
+    const dir = path.dirname(imagePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // 保存文件
+    fs.writeFileSync(imagePath, buffer);
+
+    // 返回本地 URI
+    return `/static/${imageName}`;
   }
 
-  const extension = matches[1];
-  const imageData = matches[2];
-  const buffer = Buffer.from(imageData, 'base64');
-
-  // 生成文件名
-  const imageName = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
-  const imagePath = '/home/brian/文档/Projects/OnlineShop/backend/public/static/' + imageName;
-
-  // 确保目录存在
-  const dir = path.dirname(imagePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  // 保存文件
-  fs.writeFileSync(imagePath, buffer);
-
-  // 返回 URI
-  return `/static/${imageName}`;
+  // 生产环境：后续会使用图床，暂时返回空字符串
+  // TODO: 实现图床上传逻辑
+  return '';
 }
 
 // 获取所有产品（公开）

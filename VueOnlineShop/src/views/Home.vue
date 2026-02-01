@@ -1,77 +1,43 @@
 <script setup>
 import Card from '../components/card.vue';
 import Navbar from '../components/navbar.vue';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { get } from '@/utils/api';
+import { ElMessage } from 'element-plus';
 
 const products = ref([]);
 const loading = ref(false);
-const emptyList = ref(false);
 
-// 示例商品数据（当后端没有数据时使用）
-const sampleProducts = [
-  {
-    id: 1,
-    name: '智能手表 Pro',
-    description: '高端智能手表，支持心率监测、GPS定位和多种运动模式',
-    price: 1299,
-    image: 'https://placehold.co/400x400/e2e8f0/64748b?text=智能手表'
-  },
-  {
-    id: 2,
-    name: '无线蓝牙耳机',
-    description: '主动降噪，超长续航，带来沉浸式音乐体验',
-    price: 399,
-    image: 'https://placehold.co/400x400/e2e8f0/64748b?text=蓝牙耳机'
-  },
-  {
-    id: 3,
-    name: '机械键盘 RGB',
-    description: '青轴手感，全键无冲，RGB背光灯效，游戏办公两不误',
-    price: 599,
-    image: 'https://placehold.co/400x400/e2e8f0/64748b?text=机械键盘'
-  },
-  {
-    id: 4,
-    name: '4K 超清显示器',
-    description: '27英寸IPS面板，144Hz刷新率，色彩精准，适合专业设计和游戏',
-    price: 2499,
-    image: 'https://placehold.co/400x400/e2e8f0/64748b?text=显示器'
-  },
-  {
-    id: 5,
-    name: '便携式充电宝',
-    description: '20000mAh大容量，快充支持，多设备兼容，出行必备',
-    price: 129,
-    image: 'https://placehold.co/400x400/e2e8f0/64748b?text=充电宝'
-  },
-  {
-    id: 6,
-    name: '智能摄像头',
-    description: '1080P高清画质，夜视功能，移动侦测，支持云存储',
-    price: 199,
-    image: 'https://placehold.co/400x400/e2e8f0/64748b?text=摄像头'
+// 获取图片 URL
+const getImageUrl = (image) => {
+  if (!image) {
+    return '';
   }
-];
+  // 如果是 base64 数据，直接返回
+  if (image.startsWith('data:image/')) {
+    return image;
+  }
+  // 如果是相对路径（如 /static/xxx.png），拼接后端地址
+  if (image.startsWith('/static/') || image.startsWith('/images/')) {
+    return `http://localhost:3000${image}`;
+  }
+  // 如果是完整 URL，直接返回
+  if (image.startsWith('http://') || image.startsWith('https://')) {
+    return image;
+  }
+  // 其他情况返回空字符串
+  return '';
+};
 
 const fetchProducts = async () => {
   loading.value = true;
   try {
-    const response = await fetch('http://localhost:3000/api/products');
-    const data = await response.json();
-
-    if (data && data.length > 0) {
-      products.value = data;
-      emptyList.value = false;
-    } else {
-      // 后端没有数据时使用示例数据
-      products.value = sampleProducts;
-      emptyList.value = false;
-    }
+    const data = await get('/products');
+    products.value = data || [];
   } catch (error) {
+    ElMessage.error(error.message || '获取商品列表失败');
     console.error('获取商品数据失败:', error);
-    // 网络错误时使用示例数据
-    products.value = sampleProducts;
-    emptyList.value = false;
+    products.value = [];
   } finally {
     loading.value = false;
   }
@@ -93,11 +59,11 @@ onMounted(fetchProducts);
       <p>加载中...</p>
     </div>
 
-    <div v-else-if="!emptyList" class="products-grid">
+    <div v-else-if="products.length > 0" class="products-grid">
       <Card
         v-for="product in products"
         :key="product.id"
-        :imageSrc="product.image || `https://placehold.co/400x400/e2e8f0/64748b?text=${product.name}`"
+        :imageSrc="getImageUrl(product.image) || `https://placehold.co/400x400/e2e8f0/64748b?text=${product.name}`"
         :imageAlt="product.name"
         :title="product.name"
         :description="product.description"
