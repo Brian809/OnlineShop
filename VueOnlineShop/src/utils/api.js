@@ -1,6 +1,7 @@
 import { useUserStore } from '@/stores/user'
 
-const API_BASE_URL = 'http://localhost:3000/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
 
 /**
  * 图片 URL 处理工具函数
@@ -17,7 +18,7 @@ export function getImageUrl(image) {
 
   // 如果是相对路径，拼接后端地址
   if (image.startsWith('/static/')) {
-    return `http://localhost:3000${image}`;
+    return `${BACKEND_URL}${image}`;
   }
 
   // 如果是完整 URL，直接返回
