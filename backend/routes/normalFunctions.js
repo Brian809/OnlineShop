@@ -33,8 +33,8 @@ router.post('/uploadImage', passport.authenticate('jwt', { session: false }), as
       const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(base64Data, 'base64');
       const imageName = `image_${Date.now()}.png`;
-      // 使用绝对路径，确保路径正确
-      const imagePath = '/home/brian/文档/Projects/OnlineShop/backend/public/static/' + imageName;
+      // 使用相对路径，确保可移植性
+      const imagePath = path.join(__dirname, '..', 'public', 'static', imageName);
       console.log('保存路径:', imagePath);
       fs.writeFileSync(imagePath, buffer);
       imageUrl = `${req.protocol}://${req.get('host')}/static/${imageName}`;
