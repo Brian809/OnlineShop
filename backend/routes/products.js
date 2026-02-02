@@ -4,28 +4,71 @@ const Product = require('../models/Product');
 const passport = require('passport');
 const fs = require('fs');
 const path = require('path');
+const qiniu = require('qiniu');
+require('dotenv').config();
 
-// 处理 base64 图片并保存到静态文件夹（仅开发环境）
-function saveBase64Image(base64Data) {
+// 七牛云配置
+const qiniuConfig = {
+  accessKey: process.env.QIANNIU_ACCESS_KEY,
+  secretKey: process.env.QIANNIU_SECRET_KEY,
+  bucket: process.env.QIANNIU_BUCKET_NAME,
+  domain: process.env.QIANNIU_DOMAIN
+};
+
+// 生成七牛云上传凭证
+function generateUploadToken() {
+  const mac = new qiniu.auth.digest.Mac(qiniuConfig.accessKey, qiniuConfig.secretKey);
+  const putPolicy = new qiniu.rs.PutPolicy({
+    scope: qiniuConfig.bucket
+  });
+  return putPolicy.uploadToken(mac);
+}
+
+// 上传图片到七牛云
+function uploadToQiniu(base64Data, fileName) {
+  return new Promise((resolve, reject) => {
+    const uploadToken = generateUploadToken();
+    const config = new qiniu.conf.Config();
+    const formUploader = new qiniu.form_up.FormUploader(config);
+    const putExtra = new qiniu.form_up.PutExtra();
+
+    formUploader.put(uploadToken, fileName, base64Data, putExtra, (respErr, respBody, respInfo) => {
+      if (respErr) {
+        reject(respErr);
+        return;
+      }
+      if (respInfo.statusCode === 200) {
+        // 七牛云返回的域名格式需要处理，去除协议前缀重复
+        const domain = qiniuConfig.domain.replace(/^https?:\/\//, '');
+        const imageUrl = `https://${domain}/${respBody.key}`;
+        resolve(imageUrl);
+      } else {
+        reject(new Error(`上传失败: ${respInfo.statusCode}`));
+      }
+    });
+  });
+}
+
+// 处理 base64 图片
+async function saveBase64Image(base64Data) {
   if (!base64Data || !base64Data.startsWith('data:image/')) {
     return '';
   }
 
+  // 提取 MIME 类型和 base64 数据
+  const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+  if (!matches) {
+    return '';
+  }
+
+  const extension = matches[1];
+  const imageData = matches[2];
+  const buffer = Buffer.from(imageData, 'base64');
+
   // 开发环境：保存到本地静态文件夹
   if (process.env.NODE_ENV === 'development') {
-    // 提取 MIME 类型和 base64 数据
-    const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
-    if (!matches) {
-      return '';
-    }
-
-    const extension = matches[1];
-    const imageData = matches[2];
-    const buffer = Buffer.from(imageData, 'base64');
-
-    // 生成文件名
     const imageName = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
-    const imagePath = '/home/brian/文档/Projects/OnlineShop/backend/public/static/' + imageName;
+    const imagePath = path.join(__dirname, '..', 'public', 'static', imageName);
 
     // 确保目录存在
     const dir = path.dirname(imagePath);
@@ -40,9 +83,15 @@ function saveBase64Image(base64Data) {
     return `/static/${imageName}`;
   }
 
-  // 生产环境：后续会使用图床，暂时返回空字符串
-  // TODO: 实现图床上传逻辑
-  return '';
+  // 生产环境：上传到七牛云
+  try {
+    const fileName = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
+    const imageUrl = await uploadToQiniu(buffer, fileName);
+    return imageUrl;
+  } catch (err) {
+    console.error('七牛云上传失败:', err);
+    return '';
+  }
 }
 
 // 获取所有产品（公开）
@@ -85,21 +134,21 @@ router.post('/', passport.authenticate('jwt', { session: false }), async (req, r
       return res.status(400).json({ message: '商品名称和价格为必填项' });
     }
 
-    // 处理主图片 - 如果是 base64，保存到静态文件夹
+    // 处理主图片 - 如果是 base64，保存到静态文件夹或七牛云
     let imageUri = '';
     if (image) {
-      imageUri = saveBase64Image(image);
+      imageUri = await saveBase64Image(image);
     }
 
-    // 处理图片集合 - 如果有 base64，保存到静态文件夹
+    // 处理图片集合 - 如果有 base64，保存到静态文件夹或七牛云
     let picCollectionUris = [];
     if (picCollection && Array.isArray(picCollection)) {
-      picCollectionUris = picCollection.map(img => {
+      picCollectionUris = await Promise.all(picCollection.map(async (img) => {
         if (img && img.startsWith('data:image/')) {
-          return saveBase64Image(img);
+          return await saveBase64Image(img);
         }
         return img;
-      });
+      }));
     }
 
     const product = await Product.create({
@@ -138,19 +187,19 @@ router.patch('/:id', passport.authenticate('jwt', { session: false }), async (re
 
     const updateData = { ...req.body };
 
-    // 处理主图片 - 如果是 base64，保存到静态文件夹
+    // 处理主图片 - 如果是 base64，保存到静态文件夹或七牛云
     if (updateData.image && updateData.image.startsWith('data:image/')) {
-      updateData.image = saveBase64Image(updateData.image);
+      updateData.image = await saveBase64Image(updateData.image);
     }
 
-    // 处理图片集合 - 如果有 base64，保存到静态文件夹
+    // 处理图片集合 - 如果有 base64，保存到静态文件夹或七牛云
     if (updateData.picCollection && Array.isArray(updateData.picCollection)) {
-      updateData.picCollection = updateData.picCollection.map(img => {
+      updateData.picCollection = await Promise.all(updateData.picCollection.map(async (img) => {
         if (img && img.startsWith('data:image/')) {
-          return saveBase64Image(img);
+          return await saveBase64Image(img);
         }
         return img;
-      });
+      }));
       updateData.picCollection = JSON.stringify(updateData.picCollection);
     }
 
