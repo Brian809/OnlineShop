@@ -20,6 +20,11 @@
               {{ row.isAdmin ? '是' : '否' }}
             </template>
           </el-table-column>
+          <el-table-column prop="coin" label="余额" width="120">
+            <template #default="{ row }">
+              {{ row.coin.toFixed(2) }} 元
+            </template>
+          </el-table-column>
           <el-table-column prop="isdisabled" label="账户状态" width="120">
             <template #default="{ row }">
               {{ row.isdisabled ? '已禁用' : '正常' }}

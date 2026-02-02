@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const User = require('./User');
 
 const Cart = sequelize.define('Cart', {
   id: {
@@ -10,11 +9,7 @@ const Cart = sequelize.define('Cart', {
   },
   userId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: User,
-      key: 'id'
-    }
+    allowNull: false
   },
   productId: {
     type: DataTypes.INTEGER,
@@ -23,14 +18,6 @@ const Cart = sequelize.define('Cart', {
   quantity: {
     type: DataTypes.INTEGER,
     defaultValue: 1
-  },
-  createdAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
-  },
-  updatedAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
   }
 }, {
   tableName: 'carts',

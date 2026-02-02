@@ -3,6 +3,28 @@ import { useUserStore } from '@/stores/user'
 const API_BASE_URL = 'http://localhost:3000/api'
 
 /**
+ * 图片 URL 处理工具函数
+ * @param {string} image - 图片 URL 或 base64 数据
+ * @returns {string} - 处理后的图片 URL
+ */
+export function getImageUrl(image) {
+  if (!image) return 'https://placehold.co/300x300?text=No+Image';
+
+  // 如果是 base64 数据，直接返回
+  if (image.startsWith('data:image')) {
+    return image;
+  }
+
+  // 如果是相对路径，拼接后端地址
+  if (image.startsWith('/static/')) {
+    return `http://localhost:3000${image}`;
+  }
+
+  // 如果是完整 URL，直接返回
+  return image;
+}
+
+/**
  * 通用 API 请求函数
  * @param {string} endpoint - API 端点（不包含基础 URL）
  * @param {Object} options - fetch 选项

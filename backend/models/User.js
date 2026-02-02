@@ -55,6 +55,10 @@ const User = sequelize.define('User', {
   isdisabled: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  coin:{
+    type: DataTypes.DOUBLE,
+    defaultValue: 0
   }
 }, {
   tableName: 'users',

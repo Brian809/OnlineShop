@@ -87,6 +87,8 @@
       <div class="clear-cache" v-if="isLogin">
         <el-button type="text" size="small" @click="handleClearCache">清除缓存</el-button>
       </div>
+
+      <router-link to="/" class="register-link"><el-button>返回首页</el-button></router-link>
     </div>
   </div>
 </template>

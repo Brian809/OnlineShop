@@ -11,6 +11,7 @@ require('dotenv').config();
 // 配置
 require('./config/passport');
 const sequelize = require('./config/database');
+require('./models'); // 初始化模型关联
 
 // 路由
 const authRouter = require('./routes/auth');
@@ -18,7 +19,7 @@ const productsRouter = require('./routes/products');
 const usersRouter = require('./routes/users');
 const adminRouter = require('./routes/admin');
 const normalFunctionsRouter = require('./routes/normalFunctions');
-
+const cartRouter = require('./routes/cart');
 
 var app = express();
 
@@ -40,7 +41,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false } // 开发环境设为 false，生产环境设为 true
+  cookie: { secure: process.env.NODE_ENV === 'production' } // 开发环境设为 false，生产环境设为 true
 }));
 
 // Passport 初始化
@@ -48,7 +49,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // 数据库同步（开发环境）
-sequelize.sync({ alter: process.env.NODE_ENV === 'development' })
+// 注意：使用 sync() 而不是 sync({ alter: true })，避免重复索引问题
+// 如果需要修改表结构，请手动执行 SQL 或使用 sync({ force: true })（会删除数据）
+sequelize.sync({alter: process.env.SYNC_ALTER === 'true' })
   .then(() => console.log('✓ 数据库同步成功'))
   .catch(err => console.error('✗ 数据库同步失败:', err));
 
@@ -58,6 +61,7 @@ app.use('/api/products', productsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/normal', normalFunctionsRouter);
+app.use('/api/cart',cartRouter );
 
 
 // 健康检查
