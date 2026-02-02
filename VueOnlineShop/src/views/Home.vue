@@ -8,6 +8,7 @@ import { ElMessage } from 'element-plus';
 
 const products = ref([]);
 const loading = ref(false);
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 // 获取图片 URL
 const getImageUrl = (image) => {
@@ -20,7 +21,7 @@ const getImageUrl = (image) => {
   }
   // 如果是相对路径（如 /static/xxx.png），拼接后端地址
   if (image.startsWith('/static/') || image.startsWith('/images/')) {
-    return `http://localhost:3000${image}`;
+    return `${BACKEND_URL}${image}`;
   }
   // 如果是完整 URL，直接返回
   if (image.startsWith('http://') || image.startsWith('https://')) {
