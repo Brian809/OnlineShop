@@ -27,7 +27,8 @@ router.post('/add', passport.authenticate('jwt', { session: false }), async (req
   try {
     const existingItem = await Cart.findOne({ where: { userId: req.user.id, productId } });
     if (existingItem) {
-      existingItem.quantity = quantity;
+      // 累加数量而不是替换
+      existingItem.quantity += quantity;
       await existingItem.save();
       return res.json(existingItem);
     } else {

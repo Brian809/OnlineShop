@@ -22,7 +22,7 @@
           </el-table-column>
           <el-table-column prop="coin" label="余额" width="120">
             <template #default="{ row }">
-              {{ row.coin.toFixed(2) }} 元
+              {{ (row.coin || 0).toFixed(2) }} 元
             </template>
           </el-table-column>
           <el-table-column prop="isdisabled" label="账户状态" width="120">
@@ -35,8 +35,9 @@
               {{ formatDate(row.createdAt) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="200">
+          <el-table-column label="操作" width="280">
             <template #default="{ row }">
+              <el-button type="primary" size="small" @click="openAddCoinDialog(row)">修改金币</el-button>
               <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
               <el-button type="warning" size="small" @click="toggleDisable(row)">{{ row.isdisabled ? '启用' : '禁用' }}</el-button>
             </template>
@@ -102,6 +103,45 @@
       </template>
     </el-dialog>
   </div>
+<!-- 加金币对话框 -->
+    <el-dialog
+      v-model="addCoinDialogVisible"
+      title="修改金币"
+      width="400px"
+      @close="resetAddCoinForm"
+    >
+      <el-form
+        ref="addCoinFormRef"
+        :model="addCoinForm"
+        :rules="addCoinRules"
+        label-width="100px"
+      >
+        <el-form-item label="用户">
+          <el-input :value="selectedUser?.username" disabled />
+        </el-form-item>
+
+        <el-form-item label="当前余额">
+          <el-input :value="(selectedUser?.coin || 0).toFixed(2) + ' 元'" disabled />
+        </el-form-item>
+
+        <el-form-item label="修改金额" prop="amount">
+          <el-input-number
+            v-model="addCoinForm.amount"
+            :min="0.01"
+            :max="100000"
+            :precision="2"
+            :step="10"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="addCoinDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleAddCoin" :loading="addCoinLoading">确定</el-button>
+      </template>
+    </el-dialog>
 </template>
 
 <script setup>
@@ -114,6 +154,22 @@ import SlideNavigationBar from '@/components/admin/slideNavigationBar.vue'
 const userStore = useUserStore()
 const users = ref([])
 const loading = ref(false)
+
+// 金币对话框相关
+const addCoinDialogVisible = ref(false)
+const addCoinLoading = ref(false)
+const addCoinFormRef = ref(null)
+const selectedUser = ref(null)
+const addCoinForm = ref({
+  amount: 10
+})
+
+const addCoinRules = {
+  amount: [
+    { required: true, message: '请输入增加金额', trigger: 'blur' },
+    { type: 'number', min: 0.01, message: '金额必须大于 0', trigger: 'blur' }
+  ]
+}
 
 // 添加用户对话框相关
 const addUserDialogVisible = ref(false)
@@ -285,6 +341,51 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+// 打开修改金币对话框
+const openAddCoinDialog = (user) => {
+  selectedUser.value = user
+  addCoinForm.value.amount = user.coin || 10
+  addCoinDialogVisible.value = true
+}
+
+// 重置金币表单
+const resetAddCoinForm = () => {
+  addCoinForm.value.amount = 10
+  addCoinFormRef.value?.clearValidate()
+  selectedUser.value = null
+}
+
+// 修改金币
+const handleAddCoin = async () => {
+  if (!addCoinFormRef.value || !selectedUser.value) return
+
+  try {
+    await addCoinFormRef.value.validate()
+
+    addCoinLoading.value = true
+
+    // 调用后端 API 更新用户余额
+    const data = await put(`/admin/users/${selectedUser.value.id}/coin`, {
+      amount: addCoinForm.value.amount
+    })
+
+    ElMessage.success(`成功为用户 "${selectedUser.value.username}" 修改金币为 ${addCoinForm.value.amount.toFixed(2)} 元`)
+    addCoinDialogVisible.value = false
+    resetAddCoinForm()
+    // 刷新列表
+    await fetchUsers()
+  } catch (error) {
+    if (error && typeof error === 'object' && error.errorFields) {
+      console.log('表单验证未通过')
+    } else {
+      ElMessage.error(error.message || '修改金币失败')
+      console.error('修改金币错误:', error)
+    }
+  } finally {
+    addCoinLoading.value = false
+  }
 }
 
 // 组件挂载时获取用户列表

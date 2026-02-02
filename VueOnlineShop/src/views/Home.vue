@@ -1,7 +1,7 @@
 <script setup>
 import Card from '../components/card.vue';
 import Navbar from '../components/navbar.vue';
-import cart from '../components/cart.vue';
+import Cart from '../components/cart.vue';
 import { ref, onMounted, computed } from 'vue';
 import { get } from '@/utils/api';
 import { ElMessage } from 'element-plus';
@@ -48,56 +48,45 @@ onMounted(fetchProducts);
 </script>
 
 <template>
-  <div class="home-page">
-    <Navbar />
+  <Navbar />
 
-    <div class="main-container">
-      <div class="banner">
-        <h1>欢迎来到 OnlineShop</h1>
-        <p>发现更多优质商品</p>
-      </div>
-
-      <div class="content-wrapper">
-        <!-- 加载中状态 -->
-        <div v-if="loading" class="loading-container">
-          <el-skeleton :rows="6" animated />
-        </div>
-
-        <!-- 商品列表 -->
-        <div v-else-if="products.length > 0" class="products-grid">
-          <Card
-            v-for="product in products"
-            :key="product.id"
-            :productId="product.id"
-            :imageSrc="getImageUrl(product.image) || `https://placehold.co/400x400/e2e8f0/64748b?text=${product.name}`"
-            :imageAlt="product.name"
-            :title="product.name"
-            :description="product.description"
-            :price="product.price"
-          />
-        </div>
-
-        <!-- 空状态 -->
-        <el-empty v-else description="暂无商品，敬请期待" class="empty-state">
-          <el-button type="primary" @click="fetchProducts">刷新页面</el-button>
-        </el-empty>
-      </div>
+  <div class="home-container">
+    <div class="banner">
+      <h1>欢迎来到 OnlineShop</h1>
+      <p>发现更多优质商品</p>
     </div>
 
-    <cart />
+    <div v-if="loading" class="loading">
+      <p>加载中...</p>
+    </div>
+
+    <div v-else-if="products.length > 0" class="products-grid">
+      <Card
+        v-for="product in products"
+        :key="product.id"
+        :productId="product.id"
+        :imageSrc="getImageUrl(product.image) || `https://placehold.co/400x400/e2e8f0/64748b?text=${product.name}`"
+        :imageAlt="product.name"
+        :title="product.name"
+        :description="product.description"
+        :price="product.price"
+      />
+    </div>
+
+    <div v-else class="empty-state">
+      <h1>暂无商品</h1>
+      <p>敬请期待更多优质商品上线</p>
+    </div>
   </div>
+
+  <Cart />
 </template>
 
 <style scoped>
-.home-page {
+.home-container {
   min-height: 100vh;
   background-color: #f5f5f5;
-}
-
-.main-container {
-  min-height: 100vh;
-  padding-top: 60px; /* 为桌面导航栏留出空间 */
-  padding-bottom: 80px; /* 为底部导航栏留出空间 */
+  padding-bottom: 100px; /* 为购物车按钮留出空间 */
 }
 
 .banner {
@@ -105,15 +94,12 @@ onMounted(fetchProducts);
   color: white;
   text-align: center;
   padding: 60px 20px;
-  margin: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
 }
 
 .banner h1 {
   margin: 0 0 10px 0;
   font-size: 36px;
-  font-weight: 600;
 }
 
 .banner p {
@@ -122,56 +108,34 @@ onMounted(fetchProducts);
   opacity: 0.9;
 }
 
-.content-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.loading-container {
-  padding: 40px 20px;
-  background: white;
-  border-radius: 8px;
-  margin: 20px;
+.loading {
+  text-align: center;
+  padding: 100px 20px;
+  font-size: 18px;
+  color: #666;
 }
 
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .empty-state {
-  padding: 60px 20px;
+  text-align: center;
+  padding: 100px 20px;
+  color: #666;
 }
 
-/* 移动端适配 */
-@media (max-width: 768px) {
-  .main-container {
-    padding-top: 0;
-    padding-bottom: 70px;
-  }
+.empty-state h1 {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
 
-  .banner {
-    padding: 40px 20px;
-    margin: 10px;
-  }
-
-  .banner h1 {
-    font-size: 28px;
-  }
-
-  .banner p {
-    font-size: 16px;
-  }
-
-  .products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 15px;
-  }
-
-  .content-wrapper {
-    padding: 0 10px;
-  }
+.empty-state p {
+  font-size: 16px;
 }
 </style>

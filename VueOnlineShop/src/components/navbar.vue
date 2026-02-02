@@ -1,87 +1,79 @@
 <template>
   <!-- 桌面端顶部导航栏 -->
-  <el-menu
-    :default-active="activeMenu"
-    mode="horizontal"
-    :ellipsis="false"
-    class="desktop-nav"
-    router
-    @select="handleMenuSelect"
-  >
-    <el-menu-item index="/">
-      <el-icon><HomeFilled /></el-icon>
-      <span>首页</span>
-    </el-menu-item>
-    <el-menu-item index="/about">
-      <el-icon><InfoFilled /></el-icon>
-      <span>关于</span>
-    </el-menu-item>
-    <el-menu-item index="/contact">
-      <el-icon><PhoneFilled /></el-icon>
-      <span>联系</span>
-    </el-menu-item>
+  <nav class="desktop-nav">
+    <div class="nav-container">
+      <div class="nav-left">
+        <router-link to="/" class="nav-link">
+          <span class="icon">🏠</span>
+          <span>首页</span>
+        </router-link>
+        <router-link to="/about" class="nav-link">
+          <span class="icon">ℹ️</span>
+          <span>关于</span>
+        </router-link>
+        <router-link to="/contact" class="nav-link">
+          <span class="icon">📞</span>
+          <span>联系</span>
+        </router-link>
+      </div>
 
-    <div class="flex-grow" />
-
-    <template v-if="!isLoggedIn">
-      <el-menu-item index="/login">
-        <el-icon><UserFilled /></el-icon>
-        <span>登录</span>
-      </el-menu-item>
-    </template>
-
-    <template v-else>
-      <el-menu-item index="/admin/users" v-if="isAdmin">
-        <el-icon><Setting /></el-icon>
-        <span>用户管理</span>
-      </el-menu-item>
-      <el-menu-item index="/admin/products" v-if="isAdmin">
-        <el-icon><Box /></el-icon>
-        <span>商品管理</span>
-      </el-menu-item>
-      <el-menu-item index="logout">
-        <el-icon><SwitchButton /></el-icon>
-        <span>退出</span>
-      </el-menu-item>
-    </template>
-  </el-menu>
+      <div class="nav-right">
+        <template v-if="!isLoggedIn">
+          <router-link to="/login" class="nav-link">
+            <span class="icon">👤</span>
+            <span>登录</span>
+          </router-link>
+        </template>
+        <template v-else>
+          <router-link to="/admin/users" class="nav-link" v-if="isAdmin">
+            <span class="icon">⚙️</span>
+            <span>用户管理</span>
+          </router-link>
+          <router-link to="/admin/products" class="nav-link" v-if="isAdmin">
+            <span class="icon">📦</span>
+            <span>商品管理</span>
+          </router-link>
+          <a href="#" class="nav-link" @click.prevent="logout">
+            <span class="icon">🚪</span>
+            <span>退出</span>
+          </a>
+        </template>
+      </div>
+    </div>
+  </nav>
 
   <!-- 移动端底部导航栏 -->
-  <el-tab-bar class="mobile-nav" v-model="activeMenu" @tab-change="handleTabChange">
-    <el-tab-pane name="/">
-      <template #label>
-        <el-icon><HomeFilled /></el-icon>
-        <span>首页</span>
-      </template>
-    </el-tab-pane>
-    <el-tab-pane name="/about">
-      <template #label>
-        <el-icon><InfoFilled /></el-icon>
-        <span>关于</span>
-      </template>
-    </el-tab-pane>
-    <el-tab-pane name="/contact">
-      <template #label>
-        <el-icon><PhoneFilled /></el-icon>
-        <span>联系</span>
-      </template>
-    </el-tab-pane>
-    <el-tab-pane name="/login" v-if="!isLoggedIn">
-      <template #label>
-        <el-icon><UserFilled /></el-icon>
-        <span>登录</span>
-      </template>
-    </el-tab-pane>
-    <el-tab-pane name="logout" v-else>
-      <template #label>
-        <el-icon><SwitchButton /></el-icon>
-        <span>退出</span>
-      </template>
-    </el-tab-pane>
-  </el-tab-bar>
+  <nav class="mobile-nav">
+    <router-link to="/" class="mobile-nav-item">
+      <span class="icon">🏠</span>
+      <span>首页</span>
+    </router-link>
+    <router-link to="/about" class="mobile-nav-item">
+      <span class="icon">ℹ️</span>
+      <span>关于</span>
+    </router-link>
+    <router-link to="/contact" class="mobile-nav-item">
+      <span class="icon">📞</span>
+      <span>联系</span>
+    </router-link>
+    <router-link to="/login" class="mobile-nav-item" v-if="!isLoggedIn">
+      <span class="icon">👤</span>
+      <span>登录</span>
+    </router-link>
+    <a href="#" class="mobile-nav-item" @click.prevent="logout" v-else>
+      <span class="icon">🚪</span>
+      <span>退出</span>
+    </a>
+  </nav>
 </template>
 
 <style scoped>
+/* 通用样式 */
+nav {
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
 /* 桌面端导航栏 */
 .desktop-nav {
   display: none;
@@ -91,8 +83,47 @@
   width: 100%;
 }
 
-.flex-grow {
-  flex-grow: 1;
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 60px;
+}
+
+.nav-left,
+.nav-right {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  text-decoration: none;
+  color: #333;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  background-color: #f5f5f5;
+  color: #409eff;
+}
+
+.nav-link.router-link-active {
+  background-color: #409eff;
+  color: white;
+}
+
+.nav-link .icon {
+  font-size: 18px;
 }
 
 /* 移动端底部导航栏 */
@@ -105,13 +136,40 @@
   z-index: 1000;
   background: white;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  justify-content: space-around;
+  padding: 8px 0;
 }
 
-/* 桌面端显示顶部导航，隐藏底部导航 */
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #666;
+  font-size: 12px;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.mobile-nav-item:hover {
+  background-color: #f5f5f5;
+  color: #409eff;
+}
+
+.mobile-nav-item.router-link-active {
+  color: #409eff;
+}
+
+.mobile-nav-item .icon {
+  font-size: 20px;
+}
+
+/* 响应式切换 */
 @media (min-width: 600px) {
   .desktop-nav {
-    display: flex;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    display: block;
   }
 
   .mobile-nav {
@@ -121,41 +179,16 @@
 </style>
 
 <script setup>
-import { computed, ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import {
-  HomeFilled,
-  InfoFilled,
-  PhoneFilled,
-  UserFilled,
-  Setting,
-  Box,
-  SwitchButton
-} from '@element-plus/icons-vue'
 
 const router = useRouter()
-const route = useRoute()
 const userStore = useUserStore()
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const isAdmin = computed(() => userStore.user?.isAdmin || false)
-const activeMenu = computed(() => route.path)
-
-const handleMenuSelect = (index) => {
-  if (index === 'logout') {
-    logout()
-  }
-}
-
-const handleTabChange = (name) => {
-  if (name === 'logout') {
-    logout()
-  } else {
-    router.push(name)
-  }
-}
 
 const logout = () => {
   userStore.clearUser()

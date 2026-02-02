@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-VueOnlineShop 是一个全栈在线商城系统，由前端（Vue 3）和后端（Node.js + Express）两部分组成。项目提供完整的电商功能，包括用户认证、商品管理、用户管理、图片上传等。图片存储支持开发环境（本地静态文件夹）和生产环境（图床）两种模式，数据库仅存储图片 URI 而非 base64 数据。
+VueOnlineShop 是一个全栈在线商城系统，由前端（Vue 3）和后端（Node.js + Express）两部分组成。项目提供完整的电商功能，包括用户认证、商品管理、用户管理、购物车、金币系统、图片上传等。图片存储支持开发环境（本地静态文件夹）和生产环境（图床）两种模式，数据库仅存储图片 URI 而非 base64 数据。
 
 ### 项目结构
 
@@ -13,6 +13,7 @@ OnlineShop/
 │   │   ├── components/     # 可复用组件
 │   │   │   ├── admin/      # 管理后台组件
 │   │   │   ├── card.vue    # 商品卡片组件
+│   │   │   ├── cart.vue    # 购物车组件
 │   │   │   ├── ImageUpload.vue  # 图片上传组件（待废弃）
 │   │   │   └── navbar.vue  # 导航栏组件（响应式）
 │   │   ├── views/          # 页面视图
@@ -31,10 +32,12 @@ OnlineShop/
 │   ├── bin/                # 启动脚本
 │   ├── public/             # 静态资源
 │   │   └── static/         # 上传图片存储目录（开发环境）
-│   ├── setAdmin.js         # 管理员设置脚本
+│   ├── useful_scripts/     # 实用脚本
 │   └── package.json
 │
-└── AGENTS.md               # 项目文档
+├── AGENTS.md               # 项目文档
+├── QUICKSTART.md           # 快速开始指南
+└── roadmap.md              # 项目路线图
 ```
 
 ---
@@ -60,6 +63,7 @@ src/
 │   ├── admin/           # 管理后台组件
 │   │   └── slideNavigationBar.vue  # 侧边导航栏
 │   ├── card.vue         # 商品卡片组件
+│   ├── cart.vue         # 购物车组件
 │   ├── ImageUpload.vue  # 图片上传组件（已废弃）
 │   └── navbar.vue       # 导航栏组件（响应式）
 ├── routers/             # 路由配置
@@ -153,12 +157,14 @@ npm run preview
 #### UI 组件使用
 - 首选 Element Plus 组件库
 - 全局导入：已在 `main.js` 中引入 `element-plus` 和样式
+- 使用 Element Plus 图标增强视觉效果
 
 #### 响应式设计
 - 遵循 Mobile First 设计原则
 - 导航栏采用响应式设计：
   - 移动端：底部固定导航
   - 桌面端（>= 600px）：顶部导航
+- 购物车抽屉响应式适配
 
 #### 图片显示规范
 - 使用 `object-fit: cover` 防止图片变形
@@ -170,28 +176,44 @@ npm run preview
 #### Card 组件 (`src/components/card.vue`)
 
 商品卡片组件，接收以下 props：
+- `productId` (Number, 必需): 商品 ID
 - `imageSrc` (String, 必需): 商品图片 URL
 - `imageAlt` (String, 必需): 图片替代文本
 - `title` (String, 必需): 商品标题
 - `description` (String, 必需): 商品描述
-- `price` (String, 必需): 商品价格
+- `price` (Number, 必需): 商品价格
 
 包含以下交互：
 - 点击商品区域跳转到详情页（`go2InformationPage` 方法待实现）
-- "Add to Cart" 按钮（`addToCart` 方法待实现）
-- "Buy Now" 按钮（`buyNow` 方法待实现）
+- "加入购物车" 按钮（`addToCart` 方法已实现）
+- "立即购买" 按钮（`buyNow` 方法待实现）
 
 图片显示特性：
 - 使用 `object-fit: cover` 裁剪到 300x300px
 - 图片居中显示，不变形
 
+#### Cart 组件 (`src/components/cart.vue`)
+
+购物车组件，提供完整的购物车功能：
+- **浮动按钮**：右下角固定位置，点击打开购物车抽屉
+- **抽屉式展示**：从右侧滑出，展示购物车内容
+- **功能特性**：
+  - 登录状态检查，未登录提示用户登录
+  - 获取购物车数据（GET /api/cart）
+  - 删除单个商品（DELETE /api/cart/:id）
+  - 计算购物车总价
+  - 支持商品数量累加
+  - 结算功能（待实现）
+- **响应式设计**：移动端全屏显示，桌面端固定宽度
+
 #### Navbar 组件 (`src/components/navbar.vue`)
 
 导航栏组件，采用响应式设计：
-- 移动端固定在底部
-- 桌面端位于顶部
+- **样式重构**：使用 Element Plus 图标增强视觉效果
+- **移动端**：固定在底部，包含首页、关于、联系、登录/退出
+- **桌面端**：位于顶部，包含首页、关于、联系、用户管理、商品管理、退出
 - 根据登录状态和用户权限动态显示导航项
-- 未登录：显示 Home、About、Contact、Login & Register
+- 未登录：显示 Home、About、Contact、Login
 - 已登录普通用户：显示 Home、About、Contact、Logout
 - 已登录管理员：显示 Home、About、Contact、用户管理、商品管理、Logout
 - 实现登出功能，清除用户会话
@@ -213,6 +235,7 @@ npm run preview
 
 ##### Home.vue
 - 首页展示商品列表
+- 集成 Navbar 和 Cart 组件
 - 使用 API 工具函数 `get('/products')` 获取商品数据
 - 使用 `getImageUrl` 函数智能处理图片 URL：
   - base64 数据：直接返回
@@ -222,6 +245,7 @@ npm run preview
 - 使用 Card 组件渲染单个商品
 - 响应式 Grid 布局
 - 无数据时显示空状态
+- Banner 欢迎区域
 
 ##### Login.vue
 - 登录/注册页面，支持模式切换
@@ -238,10 +262,14 @@ npm run preview
 ##### userManagement.vue (admin/)
 - 用户管理页面
 - 仅管理员可访问
-- 显示用户列表（ID、用户名、邮箱、注册时间、禁用状态）
+- 显示用户列表（ID、用户名、邮箱、管理员状态、金币余额、禁用状态、注册时间）
 - 支持启用/禁用用户功能
 - 支持创建新用户（带表单验证）
 - 管理员可设置用户角色
+- **新增**：修改用户金币功能
+  - 打开修改金币对话框
+  - 输入新余额（支持数字输入，精度 2 位小数）
+  - 确认后更新用户余额
 - 删除用户操作（带确认对话框）
 - 刷新列表功能
 - 集成侧边导航栏
@@ -301,13 +329,16 @@ backend/
 │   ├── users.js         # 用户路由
 │   ├── products.js      # 商品路由
 │   ├── admin.js         # 管理员路由
+│   ├── cart.js          # 购物车路由
 │   └── normalFunctions.js  # 通用功能路由
 ├── public/              # 静态资源
 │   ├── images/          # 图片资源
 │   ├── javascripts/     # JS 资源
 │   ├── static/          # 上传图片存储目录（开发环境）
 │   └── stylesheets/     # CSS 资源
-├── setAdmin.js          # 管理员设置脚本
+├── useful_scripts/      # 实用脚本
+│   ├── cleanup-indexes.js    # 清理索引脚本
+│   └── setAdmin.js          # 管理员设置脚本
 └── package.json
 ```
 
@@ -391,6 +422,17 @@ node setAdmin.js
 - `DELETE /:id` - 删除商品（管理员）
   - 需要管理员权限
 
+#### 购物车相关 (`/api/cart`)
+- `GET /` - 获取当前用户的购物车（需要认证）
+  - 返回购物车商品列表，包含商品详情
+- `POST /add` - 添加商品到购物车（需要认证）
+  - 请求体：`{ productId, quantity }`
+  - 如果商品已存在，累加数量
+- `DELETE /:id` - 删除单个购物车商品（需要认证）
+  - 参数：购物车项目 ID
+- `DELETE /removeSeveral` - 删除多个购物车商品（需要认证）
+  - 请求体：`{ productIds }`（商品 ID 数组）
+
 #### 用户相关 (`/api/users`)
 - `GET /` - 获取用户列表
 - `GET /:id` - 获取用户详情
@@ -399,12 +441,15 @@ node setAdmin.js
 
 #### 管理员相关 (`/api/admin`)
 - `GET /users` - 获取所有用户（仅管理员）
-  - 返回用户列表，包含禁用状态
+  - 返回用户列表，包含禁用状态、管理员状态、金币余额
 - `POST /users` - 创建用户（仅管理员）
   - 支持设置 isAdmin 字段
   - 请求体验证
 - `PUT /users/:id/toogleDisable` - 启用/禁用用户（仅管理员）
   - 切换用户的 isdisabled 状态
+- `PUT /users/:id/coin` - 修改用户金币（仅管理员）
+  - 请求体：`{ amount }`（新余额）
+  - 更新用户的 coin 字段
 - `DELETE /users/:id` - 删除用户（仅管理员）
 
 #### 通用功能 (`/api/normal`)
@@ -424,6 +469,7 @@ node setAdmin.js
 - 用户基本信息（id, username, email, password）
 - `isAdmin` 字段（布尔值，默认 false）
 - `isdisabled` 字段（布尔值，默认 false）
+- **`coin` 字段**（DOUBLE，默认 0）：用户金币余额
 - 扩展字段：firstName, lastName, phone, address, pic
 - 密码加密存储（bcryptjs）
 - 唯一性约束：username, email
@@ -437,6 +483,8 @@ node setAdmin.js
 #### Cart 模型
 - 购物车数据
 - 用户与商品的关联关系
+- 字段：userId, productId, quantity
+- 支持数量累加
 
 ### 认证机制
 
@@ -545,18 +593,212 @@ git push origin main
 
 ---
 
+## 项目路线图
+
+构建一个完整的 B2C 电商平台，包括商品展示、购物车、订单管理、用户认证等核心功能。
+
+### 进度概览
+
+| 阶段 | 功能 | 状态 | 优先级 |
+|------|------|------|--------|
+| 阶段1 | 项目基础设置 | ✅ 完成 | ⭐⭐⭐⭐⭐ |
+| 阶段2 | 用户认证系统 | ✅ 完成 | ⭐⭐⭐⭐⭐ |
+| 阶段3 | 商品管理系统 | ✅ 完成 | ⭐⭐⭐⭐⭐ |
+| 阶段4 | 购物车功能 | ✅ 完成 | ⭐⭐⭐⭐ |
+| 阶段5 | 订单系统 | ⏳ 待开发 | ⭐⭐⭐⭐ |
+| 阶段6 | 支付集成 | ⏳ 待开发 | ⭐⭐⭐ |
+| 阶段7 | 用户个人中心 | ⏳ 待开发 | ⭐⭐⭐ |
+| 阶段8 | 评价系统 | ⏳ 待开发 | ⭐⭐ |
+| 阶段9 | 高级功能 | ⏳ 待开发 | ⭐⭐ |
+| 阶段10 | 测试和部署 | ⏳ 待开发 | ⭐⭐⭐⭐ |
+
+### 第一阶段：项目基础设置 ✅
+
+#### 后端配置
+- ✅ Express.js 框架搭建
+- ✅ Passport.js 认证集成（Local + JWT）
+- ✅ Sequelize ORM 配置
+- ✅ MySQL 数据库连接
+- ✅ 环境变量管理 (.env)
+- ✅ CORS 跨域配置
+- ✅ nodemon 自动重启
+
+#### 前端配置
+- ✅ Vue 3 + Vite 项目初始化
+- ✅ Vue Router 路由配置
+- ✅ Pinia 状态管理
+- ✅ Element Plus UI 组件库
+- ✅ API 请求封装
+
+### 第二阶段：用户认证系统 ✅
+
+#### 后端
+- ✅ 用户模型设计 (User Model)
+- ✅ 密码加密 (bcryptjs)
+- ✅ Passport Local Strategy 实现
+- ✅ JWT 令牌认证
+- ✅ 注册接口 (POST /api/auth/register)
+- ✅ 登录接口 (POST /api/auth/login)
+- ✅ 支持邮箱或用户名登录
+- ✅ 用户禁用功能
+- ✅ 用户认证中间件
+
+#### 前端
+- ✅ 登录/注册页面
+- ✅ 用户认证 store (user.js)
+- ✅ 路由守卫
+- ✅ Token 自动管理
+- ✅ 登录状态持久化
+
+### 第三阶段：商品管理系统 ✅
+
+#### 后端
+- ✅ 商品模型设计 (Product Model)
+- ✅ 获取商品列表接口 (GET /api/products)
+- ✅ 获取商品详情接口 (GET /api/products/:id)
+- ✅ 创建商品接口 (POST /api/products) - 管理员
+- ✅ 更新商品接口 (PATCH /api/products/:id) - 管理员
+- ✅ 删除商品接口 (DELETE /api/products/:id) - 管理员
+- ✅ 图片上传功能（base64 转文件）
+- ✅ 开发/生产环境图片存储切换
+
+#### 前端
+- ✅ 商品列表页面 (Home.vue)
+- ✅ 商品管理页面 (productManagement.vue)
+- ✅ 商品卡片组件 (card.vue)
+- ✅ 图片上传组件（el-upload）
+- ✅ 图片显示优化（object-fit: cover）
+- ✅ 商品分类选择
+- ✅ 商品评分展示
+
+### 第四阶段：购物车功能 ✅
+
+#### 后端
+- ✅ 购物车模型完善 (Cart Model)
+- ✅ 添加到购物车接口 (POST /api/cart/add)
+- ✅ 获取购物车接口 (GET /api/cart)
+- ✅ 删除购物车项目接口 (DELETE /api/cart/:id)
+- ✅ 删除多个购物车商品接口 (DELETE /api/cart/removeSeveral)
+
+#### 前端
+- ✅ 购物车组件 (cart.vue)
+- ✅ 添加商品到购物车（Card 组件）
+- ✅ 删除商品功能
+- ✅ 计算购物车总价
+- ✅ 购物车数量累加
+- ✅ 响应式抽屉式展示
+
+### 第五阶段：订单系统 ⏳
+
+#### 后端
+- ⏳ 订单模型设计 (Order Model)
+- ⏳ 订单项目模型 (OrderItem Model)
+- ⏳ 创建订单接口 (POST /api/orders)
+- ⏳ 获取订单列表接口 (GET /api/orders)
+- ⏳ 获取订单详情接口 (GET /api/orders/:id)
+- ⏳ 订单状态管理
+- ⏳ 订单取消功能
+
+#### 前端
+- ⏳ 结算页面
+- ⏳ 订单确认页面
+- ⏳ 订单历史页面
+- ⏳ 订单详情页面
+- ⏳ 订单追踪
+
+### 第六阶段：支付集成 ⏳
+
+- ⏳ 支付网关集成（支付宝/微信支付）
+- ⏳ 支付流程实现
+- ⏳ 支付回调处理
+- ⏳ 发票生成
+- ⏳ 退款功能
+
+### 第七阶段：用户个人中心 ⏳
+
+#### 后端
+- ✅ 获取用户信息接口 (GET /api/auth/me)
+- ✅ 更新用户信息接口 (PUT /api/users/:id)
+- ✅ 修改用户金币接口 (PUT /api/admin/users/:id/coin)
+- ⏳ 修改密码接口
+- ⏳ 地址簿管理接口
+
+#### 前端
+- ⏳ 个人资料页面
+- ⏳ 订单历史
+- ⏳ 地址管理
+- ⏳ 账户设置
+- ⏳ 修改密码
+
+### 第八阶段：评价和反馈系统 ⏳
+
+#### 后端
+- ⏳ 评价模型设计 (Review Model)
+- ⏳ 创建评价接口
+- ⏳ 获取商品评价接口
+- ⏳ 删除评价接口
+- ⏳ 评价审核功能
+
+#### 前端
+- ⏳ 评价列表展示
+- ⏳ 发表评价功能
+- ⏳ 评价管理
+- ⏳ 评价统计
+
+### 第九阶段：高级功能 ⏳
+
+- ⏳ 收藏夹功能
+- ⏳ 优惠券系统
+- ⏳ 商品推荐算法
+- ⏳ 库存管理
+- ⏳ 数据分析和报表
+- ⏳ 消息通知系统
+- ⏳ 搜索优化
+
+### 第十阶段：测试和部署 ⏳
+
+#### 测试
+- ⏳ 后端单元测试
+- ⏳ 集成测试
+- ⏳ 前端组件测试
+- ⏳ E2E 测试
+
+#### 部署
+- ⏳ Docker 容器化
+- ⏳ 数据库备份策略
+- ⏳ CI/CD 流程
+- ⏳ 性能优化
+- ⏳ 安全加固
+- ⏳ 生产环境图床配置
+
+---
+
+## 已知问题和优化项
+
+### 待优化
+- ⏳ 图片上传到图床（生产环境）
+- ⏳ API 文档（Swagger）
+- ⏳ 错误日志记录
+- ⏳ 请求限流
+- ⏳ 缓存优化
+
+### 待修复
+- ⏳ Sequelize 查询警告（确保所有查询使用 where 子句）
+- ⏳ 前端错误边界处理
+
+---
+
 ## 待办事项
 
 ### 前端待办
-- [ ] 实现 `card.vue` 中的 `go2InformationPage`、`addToCart` 和 `buyNow` 方法
+- [ ] 实现 `card.vue` 中的 `go2InformationPage`、`buyNow` 方法
 - [ ] 实现产品详情页路由和组件
-- [ ] 实现购物车页面和状态管理（重构 stores/counter.js）
+- [ ] 实现购物车结算页面
 - [ ] 实现订单管理页面
 - [ ] 完善错误处理和加载状态
 - [ ] 添加单元测试
 
 ### 后端待办
-- [ ] 实现购物车 API
 - [ ] 实现订单管理 API
 - [ ] 添加数据验证中间件（使用 joi）
 - [ ] 添加 API 文档（Swagger）
@@ -675,10 +917,12 @@ import { post } from '@/utils/api'
 - 邮箱: `admin@example.com`
 - 密码: `admin123`
 - 权限: 管理员（isAdmin: true）
+- 金币: 默认 0（可通过管理后台修改）
 
 ### 普通用户
 - 可以通过注册页面创建新用户
 - 默认权限为普通用户（isAdmin: false）
+- 默认金币: 0
 - 被禁用用户无法登录（isdisabled: true）
 
 ---
@@ -693,6 +937,12 @@ import { post } from '@/utils/api'
 - 检查后端服务是否正常运行
 - 尝试使用"清除缓存"功能
 
+### 购物车问题
+- 确保用户已登录
+- 检查后端 cart.js 路由是否正常加载
+- 查看浏览器控制台错误信息
+- 确认商品 ID 正确
+
 ### 图片上传失败
 - 确认 `backend/public/static/` 目录存在
 - 检查请求体大小（限制 10MB）
@@ -705,6 +955,12 @@ import { post } from '@/utils/api'
 - 检查路由守卫日志输出
 - 重新登录确保 `isAdmin` 字段正确保存
 - 使用 `setAdmin.js` 脚本设置管理员权限
+
+### 金币修改失败
+- 确认当前用户是管理员
+- 检查输入金额是否大于 0
+- 确认用户 ID 正确
+- 查看后端日志错误信息
 
 ### 图片加载慢
 - 项目使用国内占位符图片服务（placehold.co）
@@ -735,6 +991,20 @@ import { post } from '@/utils/api'
 ## 项目历史
 
 ### 最新更新
+- **新增购物车功能** - 完整的购物车 API 和前端组件
+  - 后端：GET/POST/DELETE 购物车接口
+  - 前端：Cart 组件（浮动按钮 + 抽屉式展示）
+  - 支持：添加商品、删除商品、计算总价
+- **新增金币系统** - 用户金币余额管理
+  - User 模型新增 `coin` 字段
+  - 管理后台支持修改用户金币
+  - 用户管理页面显示金币余额
+- **重构导航栏** - 使用 Element Plus 图标和样式
+  - 更现代化的视觉效果
+  - 响应式设计优化
+- **完善 Card 组件** - 实现 addToCart 方法
+  - 支持添加商品到购物车
+  - 集成购物车 API
 - 优化图片显示 - 使用 `object-fit: cover` 防止图片变形
 - 优化首页图片处理逻辑并支持开发/生产环境图片存储切换
 - 修改图片存储方式 - base64 图片保存到静态文件夹，数据库只存储 URI
