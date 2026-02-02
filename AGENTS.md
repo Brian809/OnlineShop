@@ -820,7 +820,7 @@ git push origin main
 ### 数据库工具
 - MySQL Workbench
 - DBeaver
-- phpMyAdmin
+
 
 ### API 测试
 - Postman
