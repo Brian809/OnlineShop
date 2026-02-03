@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-VueOnlineShop 是一个全栈在线商城系统，由前端（Vue 3）和后端（Node.js + Express）两部分组成。项目提供完整的电商功能，包括用户认证、商品管理、用户管理、购物车、金币系统、图片上传等。图片存储支持开发环境（本地静态文件夹）和生产环境（图床）两种模式，数据库仅存储图片 URI 而非 base64 数据。
+VueOnlineShop 是一个全栈在线商城系统，由前端（Vue 3）和后端（Node.js + Express）两部分组成。项目提供完整的电商功能，包括用户认证、商品管理、用户管理、购物车、金币系统、图片上传等。图片存储使用腾讯云 COS，数据库仅存储图片 URI 而非 base64 数据。
 
 ### 项目结构
 
@@ -19,7 +19,8 @@ OnlineShop/
 │   │   ├── views/          # 页面视图
 │   │   │   ├── admin/      # 管理后台页面
 │   │   │   ├── Home.vue    # 首页（商品列表）
-│   │   │   └── Login.vue   # 登录/注册页面
+│   │   │   ├── Login.vue   # 登录/注册页面
+│   │   │   └── ProductDetail.vue  # 商品详情页
 │   │   ├── routers/        # 路由配置
 │   │   ├── stores/         # Pinia 状态管理
 │   │   └── utils/          # 工具函数（API 请求等）
@@ -30,8 +31,8 @@ OnlineShop/
 │   ├── models/             # Sequelize 数据模型
 │   ├── config/             # 配置文件
 │   ├── bin/                # 启动脚本
-│   ├── public/             # 静态资源
-│   │   └── static/         # 上传图片存储目录（开发环境）
+│   ├── utils/              # 工具函数
+│   │   └── cosHelper.js    # 腾讯云 COS 辅助模块
 │   ├── useful_scripts/     # 实用脚本
 │   └── package.json
 │
@@ -76,6 +77,7 @@ src/
 └── views/               # 页面视图
     ├── Home.vue         # 首页（商品列表）
     ├── Login.vue        # 登录/注册页面
+    ├── ProductDetail.vue # 商品详情页
     └── admin/           # 管理后台
         ├── userManagement.vue    # 用户管理页面
         └── productManagement.vue # 商品管理页面
@@ -125,6 +127,7 @@ npm run preview
 - 当前路由：
   - `/` - 首页
   - `/login` - 登录/注册页面
+  - `/product/:id` - 商品详情页
   - `/admin/users` - 用户管理页面（需要管理员权限）
   - `/admin/products` - 商品管理页面（需要管理员权限）
 
@@ -170,6 +173,7 @@ npm run preview
 - 使用 `object-fit: cover` 防止图片变形
 - 图片居中显示（`object-position: center`）
 - 商品卡片图片尺寸：300x300px
+- 图片 URL 直接使用，无需拼接后端地址（腾讯云 COS 返回完整 URL）
 
 ### 前端组件说明
 
@@ -184,7 +188,7 @@ npm run preview
 - `price` (Number, 必需): 商品价格
 
 包含以下交互：
-- 点击商品区域跳转到详情页（`go2InformationPage` 方法待实现）
+- 点击商品区域跳转到详情页（`go2InformationPage` 方法已实现）
 - "加入购物车" 按钮（`addToCart` 方法已实现）
 - "立即购买" 按钮（`buyNow` 方法待实现）
 
@@ -237,10 +241,7 @@ npm run preview
 - 首页展示商品列表
 - 集成 Navbar 和 Cart 组件
 - 使用 API 工具函数 `get('/products')` 获取商品数据
-- 使用 `getImageUrl` 函数智能处理图片 URL：
-  - base64 数据：直接返回
-  - 相对路径（`/static/xxx.png`）：拼接后端地址
-  - 完整 URL：直接返回
+- 图片 URL 直接使用腾讯云 COS 返回的完整 URL
 - 使用 Element Plus 的 `ElMessage` 显示错误提示
 - 使用 Card 组件渲染单个商品
 - 响应式 Grid 布局
@@ -258,6 +259,14 @@ npm run preview
 - 登录成功后保存 `isAdmin` 和 `isdisabled` 字段
 - 优化表单标签和提示文字
 - 上下文相关的标签："登录账号"（登录）、"邮箱地址"（注册）
+
+##### ProductDetail.vue
+- 商品详情页面
+- 显示商品主图、名称、描述、价格、库存、分类、评分
+- 支持商品详情图展示（网格布局）
+- 图片预览功能（点击放大）
+- 加载状态和错误提示
+- 响应式设计
 
 ##### userManagement.vue (admin/)
 - 用户管理页面
@@ -288,6 +297,7 @@ npm run preview
 - 分类选择
 - 评分组件
 - 支持图片集合（picCollection）
+- 支持商品详情图（detailImages）
 - 删除商品操作（带确认对话框）
 - 刷新列表功能
 - 集成侧边导航栏
@@ -303,6 +313,7 @@ npm run preview
 - **数据库**: MySQL (通过 Sequelize ORM 6.37.7)
 - **认证**: Passport.js (JWT + Local Strategy)
 - **会话**: express-session
+- **云存储**: 腾讯云 COS (cos-nodejs-sdk-v5)
 - **其他依赖**:
   - bcryptjs (密码加密)
   - cors (跨域支持)
@@ -331,13 +342,11 @@ backend/
 │   ├── admin.js         # 管理员路由
 │   ├── cart.js          # 购物车路由
 │   └── normalFunctions.js  # 通用功能路由
-├── public/              # 静态资源
-│   ├── images/          # 图片资源
-│   ├── javascripts/     # JS 资源
-│   ├── static/          # 上传图片存储目录（开发环境）
-│   └── stylesheets/     # CSS 资源
+├── utils/               # 工具函数
+│   └── cosHelper.js     # 腾讯云 COS 辅助模块
 ├── useful_scripts/      # 实用脚本
 │   ├── cleanup-indexes.js    # 清理索引脚本
+│   ├── migrate.js            # 数据库迁移脚本
 │   └── setAdmin.js          # 管理员设置脚本
 └── package.json
 ```
@@ -367,8 +376,12 @@ SESSION_SECRET=your_session_secret
 # JWT 密钥
 JWT_SECRET=your_jwt_secret
 
-# 图片上传配置
-IMAGE_URL=http://example.com/path/to/image.jpg
+# 腾讯云 COS 对象存储配置
+TENCENT_COS_SECRET_ID=your_tencent_cos_secret_id
+TENCENT_COS_SECRET_KEY=your_tencent_cos_secret_key
+TENCENT_COS_BUCKET=your_bucket_name
+TENCENT_COS_REGION=ap_beijing
+TENCENT_COS_DOMAIN=https://your_bucket_name.cos.ap_beijing.myqcloud.com
 ```
 
 #### 常用命令
@@ -395,6 +408,34 @@ cd backend
 node setAdmin.js
 ```
 
+#### 数据库迁移
+
+每次修改数据模型后，必须执行数据库迁移以同步数据库结构：
+
+```bash
+cd backend
+
+# 安全模式（默认）- 仅创建新表，不修改现有表
+node useful_scripts/migrate.js
+
+# 强制模式 - 创建和修改表结构（开发环境）
+node useful_scripts/migrate.js --force
+
+# 跳过索引清理
+node useful_scripts/migrate.js --no-cleanup
+
+# 生产环境强制模式（需要设置环境变量）
+FORCE_MIGRATE=true node useful_scripts/migrate.js --force
+```
+
+**迁移脚本特性**：
+- 自动同步所有模型到数据库
+- 支持安全模式和强制模式
+- 自动清理重复索引
+- 生产环境安全保护（默认禁用强制模式）
+- 详细的迁移日志输出
+- 从模型动态获取表名（无硬编码）
+
 ### 后端 API 路由
 
 #### 认证相关 (`/api/auth`)
@@ -413,12 +454,13 @@ node setAdmin.js
 - `GET /:id` - 获取单个商品详情
 - `POST /` - 创建商品（管理员）
   - 请求体验证（名称、描述、价格、库存等）
-  - 图片处理：接收 base64 格式，开发环境保存到静态文件夹，数据库存储 URI
+  - 图片处理：接收 base64 格式，上传到腾讯云 COS
   - 支持图片集合（picCollection）
+  - 支持商品详情图（detailImages）
 - `PATCH /:id` - 更新商品（管理员）
   - 需要管理员权限
   - 支持更新所有字段
-  - 图片处理：base64 自动转换为文件并保存 URI
+  - 图片处理：base64 自动上传到腾讯云 COS
 - `DELETE /:id` - 删除商品（管理员）
   - 需要管理员权限
 
@@ -455,8 +497,7 @@ node setAdmin.js
 #### 通用功能 (`/api/normal`)
 - `POST /uploadImage` - 图片上传（需要认证）
   - 接收 base64 格式图片数据
-  - 开发环境保存到 `backend/public/static/` 目录
-  - 生产环境使用配置的图片 URL 或云存储（TODO）
+  - 上传到腾讯云 COS
   - 请求体大小限制：10MB
   - 返回：`{ message, imageUrl }`
 
@@ -476,7 +517,10 @@ node setAdmin.js
 
 #### Product 模型
 - 商品信息（id, name, description, price, stock, category）
-- 图片字段：image（STRING, 存储 URI）、picCollection（STRING, JSON 格式）
+- 图片字段：
+  - `image`（STRING, 存储 URI）：商品主图
+  - `picCollection`（STRING, JSON 格式）：商品详情图集合
+  - `detailImages`（TEXT, JSON 格式）：商品详情图数组（用于详情页展示）
 - 评分字段：rating
 - 时间戳：createdAt, updatedAt
 
@@ -507,47 +551,37 @@ node setAdmin.js
 - 验证 Token 有效性和签名
 - 返回用户信息用于后续请求
 
+### 腾讯云 COS 图片存储
+
+#### COS 配置
+所有 COS 相关配置通过环境变量设置：
+- `TENCENT_COS_SECRET_ID`: 腾讯云 SecretId
+- `TENCENT_COS_SECRET_KEY`: 腾讯云 SecretKey
+- `TENCENT_COS_BUCKET`: 存储桶名称
+- `TENCENT_COS_REGION`: 存储桶地域
+- `TENCENT_COS_DOMAIN`: 自定义域名（可选）
+
+#### 图片处理流程
+1. 前端上传 base64 格式图片
+2. 后端接收并解码 base64 数据
+3. 生成唯一文件名（格式：`products/{timestamp}_{random}.{extension}`）
+4. 上传到腾讯云 COS
+5. 返回对象访问 URL
+6. 数据库仅存储 URI
+
+#### cosHelper.js 工具模块
+提供以下功能：
+- `saveBase64Image(base64Data)`: 处理 base64 图片并上传到 COS
+- `getObjectUrl(key)`: 生成对象访问 URL
+- `getPresignedUrl(key, expires)`: 生成预签名 URL（带签名）
+- `uploadToCos(buffer, key)`: 上传二进制数据到 COS
+
 ### 文件上传配置
 
 #### 请求体大小限制
 - `express.json({ limit: '10mb' })` - JSON 请求体
 - `express.urlencoded({ extended: false, limit: '10mb' })` - URL 编码请求体
 - 支持大文件（图片）上传
-
-#### 图片存储策略
-- **开发环境**（`NODE_ENV=development`）：
-  - 保存到 `backend/public/static/` 目录
-  - 文件名格式：`product_<timestamp>_<random>.<extension>`
-  - URL 格式：`/static/product_xxx.jpeg`
-  - 使用绝对路径保存，避免路径错误
-- **生产环境**（`NODE_ENV=production`）：
-  - 返回空字符串（TODO）
-  - 需要实现图床上传逻辑
-  - 未来将使用云存储服务
-
-#### 图片处理函数
-```javascript
-function saveBase64Image(base64Data) {
-  if (process.env.NODE_ENV === 'development') {
-    // 提取 MIME 类型和 base64 数据
-    const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
-    const extension = matches[1];
-    const imageData = matches[2];
-    const buffer = Buffer.from(imageData, 'base64');
-
-    // 生成唯一文件名
-    const imageName = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
-
-    // 保存到本地
-    fs.writeFileSync(imagePath, buffer);
-
-    // 返回 URI
-    return `/static/${imageName}`;
-  }
-  // 生产环境：返回空字符串（TODO: 实现图床上传）
-  return '';
-}
-```
 
 ---
 
@@ -573,7 +607,6 @@ npm run dev
 - 前端: http://localhost:5173
 - 后端: http://localhost:3000
 - 健康检查: http://localhost:3000/health
-- 静态资源: http://localhost:3000/static/
 
 ### Git 工作流
 
@@ -605,12 +638,13 @@ git push origin main
 | 阶段2 | 用户认证系统 | ✅ 完成 | ⭐⭐⭐⭐⭐ |
 | 阶段3 | 商品管理系统 | ✅ 完成 | ⭐⭐⭐⭐⭐ |
 | 阶段4 | 购物车功能 | ✅ 完成 | ⭐⭐⭐⭐ |
-| 阶段5 | 订单系统 | ⏳ 待开发 | ⭐⭐⭐⭐ |
-| 阶段6 | 支付集成 | ⏳ 待开发 | ⭐⭐⭐ |
-| 阶段7 | 用户个人中心 | ⏳ 待开发 | ⭐⭐⭐ |
-| 阶段8 | 评价系统 | ⏳ 待开发 | ⭐⭐ |
-| 阶段9 | 高级功能 | ⏳ 待开发 | ⭐⭐ |
-| 阶段10 | 测试和部署 | ⏳ 待开发 | ⭐⭐⭐⭐ |
+| 阶段5 | 商品详情页 | ✅ 完成 | ⭐⭐⭐⭐ |
+| 阶段6 | 订单系统 | ⏳ 待开发 | ⭐⭐⭐⭐ |
+| 阶段7 | 支付集成 | ⏳ 待开发 | ⭐⭐⭐ |
+| 阶段8 | 用户个人中心 | ⏳ 待开发 | ⭐⭐⭐ |
+| 阶段9 | 评价系统 | ⏳ 待开发 | ⭐⭐ |
+| 阶段10 | 高级功能 | ⏳ 待开发 | ⭐⭐ |
+| 阶段11 | 测试和部署 | ⏳ 待开发 | ⭐⭐⭐⭐ |
 
 ### 第一阶段：项目基础设置 ✅
 
@@ -659,8 +693,9 @@ git push origin main
 - ✅ 创建商品接口 (POST /api/products) - 管理员
 - ✅ 更新商品接口 (PATCH /api/products/:id) - 管理员
 - ✅ 删除商品接口 (DELETE /api/products/:id) - 管理员
-- ✅ 图片上传功能（base64 转文件）
-- ✅ 开发/生产环境图片存储切换
+- ✅ 图片上传功能（base64 转腾讯云 COS）
+- ✅ 支持图片集合（picCollection）
+- ✅ 支持商品详情图（detailImages）
 
 #### 前端
 - ✅ 商品列表页面 (Home.vue)
@@ -688,7 +723,17 @@ git push origin main
 - ✅ 购物车数量累加
 - ✅ 响应式抽屉式展示
 
-### 第五阶段：订单系统 ⏳
+### 第五阶段：商品详情页 ✅
+
+#### 前端
+- ✅ 商品详情页面 (ProductDetail.vue)
+- ✅ 商品信息展示（主图、名称、描述、价格、库存、分类、评分）
+- ✅ 商品详情图展示（网格布局）
+- ✅ 图片预览功能
+- ✅ 路由配置（/product/:id）
+- ✅ Card 组件跳转功能
+
+### 第六阶段：订单系统 ⏳
 
 #### 后端
 - ⏳ 订单模型设计 (Order Model)
@@ -706,7 +751,7 @@ git push origin main
 - ⏳ 订单详情页面
 - ⏳ 订单追踪
 
-### 第六阶段：支付集成 ⏳
+### 第七阶段：支付集成 ⏳
 
 - ⏳ 支付网关集成（支付宝/微信支付）
 - ⏳ 支付流程实现
@@ -714,7 +759,7 @@ git push origin main
 - ⏳ 发票生成
 - ⏳ 退款功能
 
-### 第七阶段：用户个人中心 ⏳
+### 第八阶段：用户个人中心 ⏳
 
 #### 后端
 - ✅ 获取用户信息接口 (GET /api/auth/me)
@@ -730,7 +775,7 @@ git push origin main
 - ⏳ 账户设置
 - ⏳ 修改密码
 
-### 第八阶段：评价和反馈系统 ⏳
+### 第九阶段：评价和反馈系统 ⏳
 
 #### 后端
 - ⏳ 评价模型设计 (Review Model)
@@ -745,7 +790,7 @@ git push origin main
 - ⏳ 评价管理
 - ⏳ 评价统计
 
-### 第九阶段：高级功能 ⏳
+### 第十阶段：高级功能 ⏳
 
 - ⏳ 收藏夹功能
 - ⏳ 优惠券系统
@@ -755,7 +800,7 @@ git push origin main
 - ⏳ 消息通知系统
 - ⏳ 搜索优化
 
-### 第十阶段：测试和部署 ⏳
+### 第十一阶段：测试和部署 ⏳
 
 #### 测试
 - ⏳ 后端单元测试
@@ -769,14 +814,12 @@ git push origin main
 - ⏳ CI/CD 流程
 - ⏳ 性能优化
 - ⏳ 安全加固
-- ⏳ 生产环境图床配置
 
 ---
 
 ## 已知问题和优化项
 
 ### 待优化
-- ⏳ 图片上传到图床（生产环境）
 - ⏳ API 文档（Swagger）
 - ⏳ 错误日志记录
 - ⏳ 请求限流
@@ -791,8 +834,7 @@ git push origin main
 ## 待办事项
 
 ### 前端待办
-- [ ] 实现 `card.vue` 中的 `go2InformationPage`、`buyNow` 方法
-- [ ] 实现产品详情页路由和组件
+- [ ] 实现 `card.vue` 中的 `buyNow` 方法
 - [ ] 实现购物车结算页面
 - [ ] 实现订单管理页面
 - [ ] 完善错误处理和加载状态
@@ -803,7 +845,6 @@ git push origin main
 - [ ] 添加数据验证中间件（使用 joi）
 - [ ] 添加 API 文档（Swagger）
 - [ ] 实现支付集成
-- [ ] **生产环境图片上传到图床**（如阿里云 OSS、七牛云等）
 
 ---
 
@@ -820,7 +861,6 @@ git push origin main
 ### 数据库工具
 - MySQL Workbench
 - DBeaver
-
 
 ### API 测试
 - Postman
@@ -886,9 +926,52 @@ import { post } from '@/utils/api'
 ### 图片处理规范
 - 使用 `object-fit: cover` 防止图片变形
 - 图片居中显示（`object-position: center`）
-- 开发环境：保存到本地静态文件夹
-- 生产环境：使用图床服务（待实现）
-- 数据库只存储 URI，不存储 base64 数据
+- 图片上传到腾讯云 COS
+- 数据库仅存储 URI，不存储 base64 数据
+- 前端直接使用腾讯云 COS 返回的完整 URL
+
+### 数据库迁移规范
+
+**强制要求**：每次修改数据模型（`backend/models/` 中的文件）后，必须执行数据库迁移。
+
+**迁移时机**：
+- 修改模型字段定义（添加、删除、修改字段类型）
+- 修改模型约束（唯一约束、外键关联等）
+- 修改索引配置
+- 创建新模型
+
+**迁移命令**：
+```bash
+cd backend
+node useful_scripts/migrate.js
+```
+
+**迁移模式选择**：
+- **安全模式**（默认）：仅创建不存在的表，不修改现有表结构
+  - 适用于：添加新模型、新表
+  - 命令：`node useful_scripts/migrate.js`
+- **强制模式**：创建和修改表结构
+  - 适用于：修改现有表结构（添加字段、修改字段类型等）
+  - 命令：`node useful_scripts/migrate.js --force`
+  - **警告**：生产环境需要设置 `FORCE_MIGRATE=true` 环境变量
+
+**索引清理**：
+- 迁移脚本会自动执行索引清理
+- 检测并删除重复索引（保留主键和第一个索引）
+- 如需跳过索引清理：`node useful_scripts/migrate.js --no-cleanup`
+
+**生产环境注意事项**：
+- 迁移前必须备份数据库
+- 优先使用安全模式，避免强制修改表结构
+- 如必须使用强制模式，需要设置 `FORCE_MIGRATE=true` 环境变量
+- 建议在测试环境验证迁移脚本后再在生产环境执行
+
+**开发流程**：
+1. 修改模型文件（如 `backend/models/User.js`）
+2. 执行迁移：`node useful_scripts/migrate.js --force`
+3. 验证数据库结构：`mysql -u root -p -e "DESCRIBE onlineshop.users;"`
+4. 测试应用功能
+5. 提交代码时在提交信息中注明"已执行数据库迁移"
 
 ---
 
@@ -897,17 +980,14 @@ import { post } from '@/utils/api'
 1. 确保 MySQL 服务正在运行
 2. 确保 `.env` 文件已正确配置
 3. 首次运行后端会自动创建数据库表
-4. 确保 `backend/public/static/` 目录存在，否则图片上传会失败
-5. 前后端必须同时运行才能完整测试功能
-6. 开发环境使用 HTTP，生产环境应使用 HTTPS
-7. 使用 `setAdmin.js` 脚本设置管理员账户
-8. 管理员用户可以访问 `/admin/users` 和 `/admin/products` 页面
-9. 登录页面提供清除缓存功能用于调试
-10. 图片上传支持最大 10MB 的请求体
-11. Sequelize 查询必须使用 `where` 子句
-12. 图片存储方式根据 `NODE_ENV` 自动切换：
-    - `development`: 保存到 `backend/public/static/`
-    - `production`: 返回空字符串（需实现图床上传）
+4. 前后端必须同时运行才能完整测试功能
+5. 开发环境使用 HTTP，生产环境应使用 HTTPS
+6. 使用 `setAdmin.js` 脚本设置管理员账户
+7. 管理员用户可以访问 `/admin/users` 和 `/admin/products` 页面
+8. 登录页面提供清除缓存功能用于调试
+9. 图片上传支持最大 10MB 的请求体
+10. Sequelize 查询必须使用 `where` 子句
+11. 图片存储使用腾讯云 COS，确保 COS 配置正确
 
 ---
 
@@ -944,11 +1024,10 @@ import { post } from '@/utils/api'
 - 确认商品 ID 正确
 
 ### 图片上传失败
-- 确认 `backend/public/static/` 目录存在
 - 检查请求体大小（限制 10MB）
 - 查看后端日志中的错误信息
 - 检查图片格式和大小
-- 确认开发环境配置正确（`NODE_ENV=development`）
+- 确认腾讯云 COS 配置正确
 
 ### 无法访问管理后台
 - 确认用户是管理员（`isAdmin: true`）
@@ -963,7 +1042,7 @@ import { post } from '@/utils/api'
 - 查看后端日志错误信息
 
 ### 图片加载慢
-- 项目使用国内占位符图片服务（placehold.co）
+- 项目使用腾讯云 COS 存储图片
 - 如仍有问题，检查网络连接
 
 ### 路由守卫问题
@@ -981,16 +1060,27 @@ import { post } from '@/utils/api'
 - 图片会在固定尺寸容器中裁剪显示
 - 确保样式正确加载
 
-### 生产环境图片上传
-- 当前生产环境返回空字符串
-- 需要实现图床上传逻辑
-- 推荐使用阿里云 OSS、七牛云等云存储服务
-
 ---
 
 ## 项目历史
 
 ### 最新更新
+- **新增商品详情页** - 完整的商品详情展示功能
+  - 前端：ProductDetail.vue 组件
+  - 路由配置：/product/:id
+  - 支持商品主图、详情图展示
+  - 图片预览功能
+  - Card 组件跳转功能已实现
+- **迁移到腾讯云 COS** - 图片存储从本地改为腾讯云 COS
+  - 新增 cosHelper.js 工具模块
+  - 商品模型新增 detailImages 字段
+  - 支持图片集合和详情图上传
+  - 数据库仅存储 URI
+- **新增数据库迁移脚本** - migrate.js
+  - 支持安全模式和强制模式
+  - 自动清理重复索引
+  - 从模型动态获取表名（无硬编码）
+  - 生产环境安全保护
 - **新增购物车功能** - 完整的购物车 API 和前端组件
   - 后端：GET/POST/DELETE 购物车接口
   - 前端：Cart 组件（浮动按钮 + 抽屉式展示）
@@ -1002,16 +1092,10 @@ import { post } from '@/utils/api'
 - **重构导航栏** - 使用 Element Plus 图标和样式
   - 更现代化的视觉效果
   - 响应式设计优化
-- **完善 Card 组件** - 实现 addToCart 方法
-  - 支持添加商品到购物车
-  - 集成购物车 API
+- **完善 Card 组件** - 实现跳转详情页和添加购物车功能
 - 优化图片显示 - 使用 `object-fit: cover` 防止图片变形
-- 优化首页图片处理逻辑并支持开发/生产环境图片存储切换
-- 修改图片存储方式 - base64 图片保存到静态文件夹，数据库只存储 URI
-- 修改商品管理 - 使用表单上传图片（Element Plus el-upload）
 - 实现完整的后台管理系统（用户管理、商品管理）
 - 添加侧边导航栏组件（支持折叠/展开）
-- 修复图片上传路径问题（使用绝对路径）
 - 增加请求体大小限制（10MB）
 - 添加用户启用/禁用功能
 - 优化登录/注册表单标签和提示

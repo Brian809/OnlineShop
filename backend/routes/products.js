@@ -2,14 +2,75 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const passport = require('passport');
-const { saveBase64Image } = require('../utils/cosHelper');
+const { saveBase64Image, getPresignedUrlSync } = require('../utils/cosHelper');
 require('dotenv').config();
+
+/**
+ * 从 COS URL 中提取对象 key
+ * @param {string} url - COS URL
+ * @returns {string} 对象 key
+ */
+function extractKeyFromUrl(url) {
+  // 从完整 URL 中提取 key
+  // 格式: https://vue-onlineshop-1316426653.cos.ap-guangzhou.myqcloud.com/products/xxx.jpeg
+  // key: products/xxx.jpeg
+  const match = url.match(/\/products\/(.+)$/);
+  return match ? `products/${match[1]}` : url;
+}
+
+/**
+ * 为产品对象添加预签名 URL
+ * @param {Object} product - 产品对象
+ * @returns {Object} 带有预签名 URL 的产品对象
+ */
+function addPresignedUrls(product) {
+  const productData = product.toJSON();
+
+  // 处理主图
+  if (productData.image) {
+    // 检查是 key 还是完整 URL
+    const imageKey = productData.image.startsWith('http')
+      ? extractKeyFromUrl(productData.image)
+      : productData.image;
+    productData.imageUrl = getPresignedUrlSync(imageKey);
+  }
+
+  // 处理图片集合
+  if (productData.picCollection) {
+    try {
+      const picCollection = JSON.parse(productData.picCollection);
+      productData.picCollectionUrls = picCollection.map(img => {
+        const key = img.startsWith('http') ? extractKeyFromUrl(img) : img;
+        return getPresignedUrlSync(key);
+      });
+    } catch (e) {
+      console.error('解析 picCollection 失败:', e);
+    }
+  }
+
+  // 处理详情图
+  if (productData.detailImages) {
+    try {
+      const detailImages = JSON.parse(productData.detailImages);
+      productData.detailImageUrls = detailImages.map(img => {
+        const key = img.startsWith('http') ? extractKeyFromUrl(img) : img;
+        return getPresignedUrlSync(key);
+      });
+    } catch (e) {
+      console.error('解析 detailImages 失败:', e);
+    }
+  }
+
+  return productData;
+}
 
 // 获取所有产品（公开）
 router.get('/', async (req, res) => {
   try {
     const products = await Product.findAll();
-    return res.json(products);
+    // 为每个产品添加预签名 URL
+    const productsWithUrls = products.map(addPresignedUrls);
+    return res.json(productsWithUrls);
   } catch (err) {
     console.error('获取产品列表错误:', err);
     return res.status(500).json({ message: '获取产品列表失败', error: err.message });
@@ -23,7 +84,9 @@ router.get('/:id', async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: '产品不存在' });
     }
-    return res.json(product);
+    // 为产品添加预签名 URL
+    const productWithUrls = addPresignedUrls(product);
+    return res.json(productWithUrls);
   } catch (err) {
     console.error('获取产品错误:', err);
     return res.status(500).json({ message: '获取产品失败', error: err.message });

@@ -58,7 +58,7 @@ function getPresignedUrl(key, expires = 3600) {
  * 上传图片到腾讯云 COS
  * @param {Buffer} buffer - 图片二进制数据
  * @param {string} key - 对象键
- * @returns {Promise<string>} 对象访问 URL
+ * @returns {Promise<{key: string, url: string}>} 返回对象键和预签名 URL
  */
 function uploadToCos(buffer, key) {
   return new Promise((resolve, reject) => {
@@ -74,18 +74,38 @@ function uploadToCos(buffer, key) {
           reject(err);
           return;
         }
-        // 返回对象访问 URL（不带签名，存储桶需配置为私有读）
-        resolve(getObjectUrl(key));
+        // 返回对象键和预签名 URL（用于私有存储桶访问）
+        resolve({
+          key: key,
+          url: getPresignedUrlSync(key)
+        });
       }
     );
   });
 }
 
 /**
+ * 同步生成预签名 URL（用于上传后立即返回）
+ * @param {string} key - 对象键
+ * @returns {string} 预签名 URL
+ */
+function getPresignedUrlSync(key) {
+  const url = cos.getObjectUrl({
+    Bucket: cosConfig.Bucket,
+    Region: cosConfig.Region,
+    Key: key,
+    Sign: true,
+    Expires: 7200 // 2小时有效期
+  });
+  // 同步模式下直接返回 URL 字符串
+  return url;
+}
+
+/**
  * 处理 base64 图片数据
  * 如果是 base64 格式，解码并上传到腾讯云 COS
  * @param {string} base64Data - base64 图片数据
- * @returns {Promise<string>} 图片访问 URL
+ * @returns {Promise<string>} 图片对象键（用于后续生成预签名 URL）
  */
 async function saveBase64Image(base64Data) {
   if (!base64Data || !base64Data.startsWith('data:image/')) {
@@ -105,14 +125,16 @@ async function saveBase64Image(base64Data) {
   // 生成唯一文件名
   const key = `products/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
 
-  // 上传到腾讯云 COS
-  return await uploadToCos(buffer, key);
+  // 上传到腾讯云 COS，返回对象键
+  const result = await uploadToCos(buffer, key);
+  return result.key;
 }
 
 module.exports = {
   cos,
   getObjectUrl,
   getPresignedUrl,
+  getPresignedUrlSync,
   uploadToCos,
   saveBase64Image
 };

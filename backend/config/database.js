@@ -1,5 +1,4 @@
 const { Sequelize } = require('sequelize');
-require('dotenv').config();
 
 // 创建 Sequelize 实例
 const sequelize = new Sequelize(
