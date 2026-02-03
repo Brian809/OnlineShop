@@ -2,60 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const passport = require('passport');
-const fs = require('fs');
-const path = require('path');
 const { saveBase64Image } = require('../utils/cosHelper');
 require('dotenv').config();
-
-/**
- * 处理 base64 图片
- * 开发环境：保存到本地静态文件夹
- * 生产环境：上传到腾讯云 COS
- * @param {string} base64Data - base64 图片数据
- * @returns {Promise<string>} 图片 URI
- */
-async function saveBase64Image(base64Data) {
-  if (!base64Data || !base64Data.startsWith('data:image/')) {
-    return '';
-  }
-
-  // 提取 MIME 类型和 base64 数据
-  const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
-  if (!matches) {
-    return '';
-  }
-
-  const extension = matches[1];
-  const imageData = matches[2];
-  const buffer = Buffer.from(imageData, 'base64');
-
-  // 开发环境：保存到本地静态文件夹
-  if (process.env.NODE_ENV === 'development') {
-    const imageName = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
-    const imagePath = path.join(__dirname, '..', 'public', 'static', imageName);
-
-    // 确保目录存在
-    const dir = path.dirname(imagePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    // 保存文件
-    fs.writeFileSync(imagePath, buffer);
-
-    // 返回本地 URI
-    return `/static/${imageName}`;
-  }
-
-  // 生产环境：上传到腾讯云 COS（使用 cosHelper 模块）
-  const { saveBase64Image: uploadToCos } = require('../utils/cosHelper');
-  try {
-    return await uploadToCos(base64Data);
-  } catch (err) {
-    console.error('腾讯云 COS 上传失败:', err);
-    return '';
-  }
-}
 
 // 获取所有产品（公开）
 router.get('/', async (req, res) => {

@@ -82,7 +82,6 @@ const detailImages = computed(() => {
 const getImageUrl = (image) => {
   if (!image) return 'https://placehold.co/300x300?text=No+Image';
   if (image.startsWith('data:image')) return image;
-  if (image.startsWith('/static/')) return `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}${image}`;
   return image;
 };
 

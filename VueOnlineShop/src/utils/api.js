@@ -16,11 +16,6 @@ export function getImageUrl(image) {
     return image;
   }
 
-  // 如果是相对路径，拼接后端地址
-  if (image.startsWith('/static/')) {
-    return `${BACKEND_URL}${image}`;
-  }
-
   // 如果是完整 URL，直接返回
   return image;
 }
