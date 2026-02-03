@@ -104,7 +104,24 @@
           >
             <el-button type="primary">选择图片</el-button>
             <template #tip>
-              <div class="el-upload__tip">支持 JPG/PNG 图片，不超过 2MB</div>
+              <div class="el-upload__tip">支持 JPG/PNG 图片，不超过 2MB（商品首图）</div>
+            </template>
+          </el-upload>
+        </el-form-item>
+
+        <el-form-item label="商品详情图" prop="detailImages">
+          <el-upload
+            v-model:file-list="detailImageFileList"
+            :auto-upload="false"
+            :on-change="handleDetailImageChange"
+            :on-remove="handleDetailImageRemove"
+            :limit="9"
+            list-type="picture-card"
+            accept="image/*"
+          >
+            <el-icon><Plus /></el-icon>
+            <template #tip>
+              <div class="el-upload__tip">最多上传 9 张详情图，每张不超过 2MB</div>
             </template>
           </el-upload>
         </el-form-item>
@@ -130,6 +147,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import { get, post, patch, del } from '@/utils/api'
 import SlideNavigationBar from '@/components/admin/slideNavigationBar.vue'
 
@@ -143,6 +161,7 @@ const productLoading = ref(false)
 const productFormRef = ref(null)
 const currentProductId = ref(null)
 const imageFileList = ref([])
+const detailImageFileList = ref([])
 
 const productForm = ref({
   name: '',
@@ -151,6 +170,7 @@ const productForm = ref({
   stock: 0,
   rating: 0,
   image: '',
+  detailImages: [],
   description: ''
 })
 
@@ -199,6 +219,7 @@ const handleEdit = (product) => {
     stock: product.stock,
     rating: product.rating,
     image: product.image || '',
+    detailImages: product.detailImages ? JSON.parse(product.detailImages) : [],
     description: product.description || ''
   }
   // 如果有图片，设置到文件列表
@@ -209,6 +230,20 @@ const handleEdit = (product) => {
     }]
   } else {
     imageFileList.value = []
+  }
+  // 设置详情图列表
+  if (product.detailImages) {
+    try {
+      const detailImages = JSON.parse(product.detailImages)
+      detailImageFileList.value = detailImages.map((url, index) => ({
+        name: `详情图${index + 1}`,
+        url: url
+      }))
+    } catch {
+      detailImageFileList.value = []
+    }
+  } else {
+    detailImageFileList.value = []
   }
   productDialogVisible.value = true
 }
@@ -234,6 +269,38 @@ const handleImageChange = (file) => {
 const handleImageRemove = () => {
   productForm.value.image = ''
   imageFileList.value = []
+}
+
+// 详情图变化处理
+const handleDetailImageChange = (file) => {
+  // 验证文件大小（2MB）
+  const isLt2M = file.size / 1024 / 1024 < 2
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB')
+    return false
+  }
+
+  // 将图片转换为 base64
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    if (!productForm.value.detailImages) {
+      productForm.value.detailImages = []
+    }
+    productForm.value.detailImages.push(e.target.result)
+  }
+  reader.readAsDataURL(file.raw)
+}
+
+// 详情图移除处理
+const handleDetailImageRemove = (file) => {
+  const index = detailImageFileList.value.indexOf(file)
+  if (index > -1) {
+    detailImageFileList.value.splice(index, 1)
+    // 从表单数据中移除对应的图片
+    if (productForm.value.detailImages && productForm.value.detailImages[index]) {
+      productForm.value.detailImages.splice(index, 1)
+    }
+  }
 }
 
 // 删除商品
@@ -269,13 +336,18 @@ const handleSaveProduct = async () => {
 
     productLoading.value = true
 
+    const saveData = {
+      ...productForm.value,
+      detailImages: JSON.stringify(productForm.value.detailImages || [])
+    }
+
     if (isEditMode.value) {
       // 编辑模式
-      await patch(`/products/${currentProductId.value}`, productForm.value)
+      await patch(`/products/${currentProductId.value}`, saveData)
       ElMessage.success('商品更新成功')
     } else {
       // 添加模式
-      await post('/products', productForm.value)
+      await post('/products', saveData)
       ElMessage.success('商品创建成功')
     }
 
@@ -303,9 +375,11 @@ const resetProductForm = () => {
     stock: 0,
     rating: 0,
     image: '',
+    detailImages: [],
     description: ''
   }
   imageFileList.value = []
+  detailImageFileList.value = []
   productFormRef.value?.clearValidate()
 }
 

@@ -90,23 +90,34 @@ router.post('/', passport.authenticate('jwt', { session: false }), async (req, r
       return res.status(403).json({ message: '无权限创建产品' });
     }
 
-    const { name, description, price, stock, category, image, rating, picCollection } = req.body;
+    const { name, description, price, stock, category, image, rating, picCollection, detailImages } = req.body;
 
     // 基本验证
     if (!name || !price) {
       return res.status(400).json({ message: '商品名称和价格为必填项' });
     }
 
-    // 处理主图片 - 如果是 base64，保存到静态文件夹或七牛云
+    // 处理主图片 - 如果是 base64，保存到静态文件夹或腾讯云 COS
     let imageUri = '';
     if (image) {
       imageUri = await saveBase64Image(image);
     }
 
-    // 处理图片集合 - 如果有 base64，保存到静态文件夹或七牛云
+    // 处理图片集合 - 如果有 base64，保存到静态文件夹或腾讯云 COS
     let picCollectionUris = [];
     if (picCollection && Array.isArray(picCollection)) {
       picCollectionUris = await Promise.all(picCollection.map(async (img) => {
+        if (img && img.startsWith('data:image/')) {
+          return await saveBase64Image(img);
+        }
+        return img;
+      }));
+    }
+
+    // 处理详情图 - 如果有 base64，保存到静态文件夹或腾讯云 COS
+    let detailImagesUris = [];
+    if (detailImages && Array.isArray(detailImages)) {
+      detailImagesUris = await Promise.all(detailImages.map(async (img) => {
         if (img && img.startsWith('data:image/')) {
           return await saveBase64Image(img);
         }
@@ -122,7 +133,8 @@ router.post('/', passport.authenticate('jwt', { session: false }), async (req, r
       category: category || '其他',
       image: imageUri,
       rating: rating || 0,
-      picCollection: picCollectionUris.length > 0 ? JSON.stringify(picCollectionUris) : null
+      picCollection: picCollectionUris.length > 0 ? JSON.stringify(picCollectionUris) : null,
+      detailImages: detailImagesUris.length > 0 ? JSON.stringify(detailImagesUris) : null
     });
 
     return res.status(201).json({
@@ -150,12 +162,12 @@ router.patch('/:id', passport.authenticate('jwt', { session: false }), async (re
 
     const updateData = { ...req.body };
 
-    // 处理主图片 - 如果是 base64，保存到静态文件夹或七牛云
+    // 处理主图片 - 如果是 base64，保存到静态文件夹或腾讯云 COS
     if (updateData.image && updateData.image.startsWith('data:image/')) {
       updateData.image = await saveBase64Image(updateData.image);
     }
 
-    // 处理图片集合 - 如果有 base64，保存到静态文件夹或七牛云
+    // 处理图片集合 - 如果有 base64，保存到静态文件夹或腾讯云 COS
     if (updateData.picCollection && Array.isArray(updateData.picCollection)) {
       updateData.picCollection = await Promise.all(updateData.picCollection.map(async (img) => {
         if (img && img.startsWith('data:image/')) {
@@ -164,6 +176,17 @@ router.patch('/:id', passport.authenticate('jwt', { session: false }), async (re
         return img;
       }));
       updateData.picCollection = JSON.stringify(updateData.picCollection);
+    }
+
+    // 处理详情图 - 如果有 base64，保存到静态文件夹或腾讯云 COS
+    if (updateData.detailImages && Array.isArray(updateData.detailImages)) {
+      updateData.detailImages = await Promise.all(updateData.detailImages.map(async (img) => {
+        if (img && img.startsWith('data:image/')) {
+          return await saveBase64Image(img);
+        }
+        return img;
+      }));
+      updateData.detailImages = JSON.stringify(updateData.detailImages);
     }
 
     await product.update(updateData);
