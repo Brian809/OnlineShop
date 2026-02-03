@@ -12,23 +12,39 @@ const qiniuConfig = {
   accessKey: process.env.QIANNIU_ACCESS_KEY,
   secretKey: process.env.QIANNIU_SECRET_KEY,
   bucket: process.env.QIANNIU_BUCKET_NAME,
-  domain: process.env.QIANNIU_DOMAIN
+  domain: process.env.QIANNIU_DOMAIN,
+  linkExpires: parseInt(process.env.QIANNIU_LINK_EXPIRES) || 3600 // 默认 1 小时
 };
+
+// 创建鉴权对象和 BucketManager
+const mac = new qiniu.auth.digest.Mac(qiniuConfig.accessKey, qiniuConfig.secretKey);
+const config = new qiniu.conf.Config();
+const bucketManager = new qiniu.rs.BucketManager(mac, config);
 
 // 生成七牛云上传凭证
 function generateUploadToken() {
-  const mac = new qiniu.auth.digest.Mac(qiniuConfig.accessKey, qiniuConfig.secretKey);
   const putPolicy = new qiniu.rs.PutPolicy({
     scope: qiniuConfig.bucket
   });
   return putPolicy.uploadToken(mac);
 }
 
+// 生成私有空间下载链接（带有效期）
+function generatePrivateDownloadUrl(key) {
+  // 确保域名格式正确
+  let domain = qiniuConfig.domain;
+  if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
+    domain = `https://${domain}`;
+  }
+
+  const deadline = parseInt(Date.now() / 1000) + qiniuConfig.linkExpires;
+  return bucketManager.privateDownloadUrl(domain, key, deadline);
+}
+
 // 上传图片到七牛云
 function uploadToQiniu(base64Data, fileName) {
   return new Promise((resolve, reject) => {
     const uploadToken = generateUploadToken();
-    const config = new qiniu.conf.Config();
     const formUploader = new qiniu.form_up.FormUploader(config);
     const putExtra = new qiniu.form_up.PutExtra();
 
@@ -38,9 +54,8 @@ function uploadToQiniu(base64Data, fileName) {
         return;
       }
       if (respInfo.statusCode === 200) {
-        // 七牛云返回的域名格式需要处理，去除协议前缀重复
-        const domain = qiniuConfig.domain.replace(/^https?:\/\//, '');
-        const imageUrl = `https://${domain}/${respBody.key}`;
+        // 使用七牛云 API 生成私有空间下载链接
+        const imageUrl = generatePrivateDownloadUrl(respBody.key);
         resolve(imageUrl);
       } else {
         reject(new Error(`上传失败: ${respInfo.statusCode}`));
