@@ -106,8 +106,11 @@ button:hover {
 </style>
 
 <script setup>
+import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { post } from '@/utils/api';
+
+const router = useRouter();
 
 // 定义 props
 const props = defineProps({
@@ -139,8 +142,7 @@ const props = defineProps({
 
 // 跳转到商品详情页
 function go2InformationPage() {
-  // TODO: 实现跳转到商品详情页
-  ElMessage.info('商品详情页待实现');
+  router.push(`/product/${props.productId}`);
 }
 
 // 添加到购物车

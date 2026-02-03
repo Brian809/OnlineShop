@@ -26,7 +26,9 @@ const Product = sequelize.define('Product', {
     type: DataTypes.STRING
   },
   image: {
-    type: DataTypes.STRING
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: '商品主图（首图）'
   },
   rating: {
     type: DataTypes.FLOAT,
@@ -42,7 +44,13 @@ const Product = sequelize.define('Product', {
   },
   picCollection: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: true,
+    comment: '商品详情图集合（JSON 数组格式）'
+  },
+  detailImages: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: '商品详情图数组（JSON 数组格式，用于详情页展示）'
   }
 }, {
   tableName: 'products',

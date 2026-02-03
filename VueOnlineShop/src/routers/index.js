@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus';
 
 import Home from '../views/Home.vue';
 import Login from '../views/Login.vue';
+import ProductDetail from '../views/ProductDetail.vue';
 import UserManagement from '../views/admin/userManagement.vue';
 import ProductManagement from '../views/admin/productManagement.vue';
 
@@ -19,6 +20,11 @@ const router = createRouter({
       path: '/login',
       name: 'Login',
       component: Login
+    },
+    {
+      path: '/product/:id',
+      name: 'ProductDetail',
+      component: ProductDetail
     },
     {
       path: '/admin/users',

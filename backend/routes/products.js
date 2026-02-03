@@ -4,13 +4,13 @@ const Product = require('../models/Product');
 const passport = require('passport');
 const fs = require('fs');
 const path = require('path');
-const { saveBase64Image } = require('../utils/qiniuHelper');
+const { saveBase64Image } = require('../utils/cosHelper');
 require('dotenv').config();
 
 /**
  * 处理 base64 图片
  * 开发环境：保存到本地静态文件夹
- * 生产环境：上传到七牛云
+ * 生产环境：上传到腾讯云 COS
  * @param {string} base64Data - base64 图片数据
  * @returns {Promise<string>} 图片 URI
  */
@@ -47,12 +47,12 @@ async function saveBase64Image(base64Data) {
     return `/static/${imageName}`;
   }
 
-  // 生产环境：上传到七牛云（使用 qiniuHelper 模块）
-  const { saveBase64Image: uploadToQiniu } = require('../utils/qiniuHelper');
+  // 生产环境：上传到腾讯云 COS（使用 cosHelper 模块）
+  const { saveBase64Image: uploadToCos } = require('../utils/cosHelper');
   try {
-    return await uploadToQiniu(base64Data);
+    return await uploadToCos(base64Data);
   } catch (err) {
-    console.error('七牛云上传失败:', err);
+    console.error('腾讯云 COS 上传失败:', err);
     return '';
   }
 }
