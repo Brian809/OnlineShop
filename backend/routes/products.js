@@ -15,6 +15,21 @@ const qiniuConfig = {
   domain: process.env.QIANNIU_DOMAIN
 };
 
+// 提取真实的 CDN 域名
+function getRealCdnDomain() {
+  let domain = qiniuConfig.domain;
+  // 如果域名包含 /domain/，提取后面的部分
+  if (domain.includes('/domain/')) {
+    domain = domain.split('/domain/')[1];
+  }
+  // 确保域名格式正确
+  if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
+    domain = `https://${domain}`;
+  }
+  // 确保域名末尾没有斜杠
+  return domain.replace(/\/$/, '');
+}
+
 // 生成七牛云上传凭证
 function generateUploadToken() {
   const mac = new qiniu.auth.digest.Mac(qiniuConfig.accessKey, qiniuConfig.secretKey);
@@ -26,13 +41,7 @@ function generateUploadToken() {
 
 // 生成七牛云图片访问链接（CDN域名 + 文件名）
 function generateImageUrl(fileName) {
-  // 确保域名格式正确
-  let domain = qiniuConfig.domain;
-  if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
-    domain = `https://${domain}`;
-  }
-  // 确保域名末尾没有斜杠
-  domain = domain.replace(/\/$/, '');
+  const domain = getRealCdnDomain();
   return `${domain}/${fileName}`;
 }
 
