@@ -12,39 +12,35 @@ const qiniuConfig = {
   accessKey: process.env.QIANNIU_ACCESS_KEY,
   secretKey: process.env.QIANNIU_SECRET_KEY,
   bucket: process.env.QIANNIU_BUCKET_NAME,
-  domain: process.env.QIANNIU_DOMAIN,
-  linkExpires: parseInt(process.env.QIANNIU_LINK_EXPIRES) || 3600 // 默认 1 小时
+  domain: process.env.QIANNIU_DOMAIN
 };
-
-// 创建鉴权对象和 BucketManager
-const mac = new qiniu.auth.digest.Mac(qiniuConfig.accessKey, qiniuConfig.secretKey);
-const config = new qiniu.conf.Config();
-const bucketManager = new qiniu.rs.BucketManager(mac, config);
 
 // 生成七牛云上传凭证
 function generateUploadToken() {
+  const mac = new qiniu.auth.digest.Mac(qiniuConfig.accessKey, qiniuConfig.secretKey);
   const putPolicy = new qiniu.rs.PutPolicy({
     scope: qiniuConfig.bucket
   });
   return putPolicy.uploadToken(mac);
 }
 
-// 生成私有空间下载链接（带有效期）
-function generatePrivateDownloadUrl(key) {
+// 生成七牛云图片访问链接（CDN域名 + 文件名）
+function generateImageUrl(fileName) {
   // 确保域名格式正确
   let domain = qiniuConfig.domain;
   if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
     domain = `https://${domain}`;
   }
-
-  const deadline = parseInt(Date.now() / 1000) + qiniuConfig.linkExpires;
-  return bucketManager.privateDownloadUrl(domain, key, deadline);
+  // 确保域名末尾没有斜杠
+  domain = domain.replace(/\/$/, '');
+  return `${domain}/${fileName}`;
 }
 
 // 上传图片到七牛云
 function uploadToQiniu(base64Data, fileName) {
   return new Promise((resolve, reject) => {
     const uploadToken = generateUploadToken();
+    const config = new qiniu.conf.Config();
     const formUploader = new qiniu.form_up.FormUploader(config);
     const putExtra = new qiniu.form_up.PutExtra();
 
@@ -54,8 +50,8 @@ function uploadToQiniu(base64Data, fileName) {
         return;
       }
       if (respInfo.statusCode === 200) {
-        // 使用七牛云 API 生成私有空间下载链接
-        const imageUrl = generatePrivateDownloadUrl(respBody.key);
+        // 使用 CDN 域名 + 文件名生成访问链接
+        const imageUrl = generateImageUrl(respBody.key);
         resolve(imageUrl);
       } else {
         reject(new Error(`上传失败: ${respInfo.statusCode}`));
