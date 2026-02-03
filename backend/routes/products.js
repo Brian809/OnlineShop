@@ -4,72 +4,16 @@ const Product = require('../models/Product');
 const passport = require('passport');
 const fs = require('fs');
 const path = require('path');
-const qiniu = require('qiniu');
+const { saveBase64Image } = require('../utils/qiniuHelper');
 require('dotenv').config();
 
-// 七牛云配置
-const qiniuConfig = {
-  accessKey: process.env.QIANNIU_ACCESS_KEY,
-  secretKey: process.env.QIANNIU_SECRET_KEY,
-  bucket: process.env.QIANNIU_BUCKET_NAME,
-  domain: process.env.QIANNIU_DOMAIN
-};
-
-// 提取真实的 CDN 域名
-function getRealCdnDomain() {
-  let domain = qiniuConfig.domain;
-  // 如果域名包含 /domain/，提取后面的部分
-  if (domain.includes('/domain/')) {
-    domain = domain.split('/domain/')[1];
-  }
-  // 确保域名格式正确
-  if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
-    domain = `http://${domain}`;
-  }
-  // 确保域名末尾没有斜杠
-  return domain.replace(/\/$/, '');
-}
-
-// 生成七牛云上传凭证
-function generateUploadToken() {
-  const mac = new qiniu.auth.digest.Mac(qiniuConfig.accessKey, qiniuConfig.secretKey);
-  const putPolicy = new qiniu.rs.PutPolicy({
-    scope: qiniuConfig.bucket
-  });
-  return putPolicy.uploadToken(mac);
-}
-
-// 生成七牛云图片访问链接（CDN域名 + 文件名）
-function generateImageUrl(fileName) {
-  const domain = getRealCdnDomain();
-  return `${domain}/${fileName}`;
-}
-
-// 上传图片到七牛云
-function uploadToQiniu(base64Data, fileName) {
-  return new Promise((resolve, reject) => {
-    const uploadToken = generateUploadToken();
-    const config = new qiniu.conf.Config();
-    const formUploader = new qiniu.form_up.FormUploader(config);
-    const putExtra = new qiniu.form_up.PutExtra();
-
-    formUploader.put(uploadToken, fileName, base64Data, putExtra, (respErr, respBody, respInfo) => {
-      if (respErr) {
-        reject(respErr);
-        return;
-      }
-      if (respInfo.statusCode === 200) {
-        // 使用 CDN 域名 + 文件名生成访问链接
-        const imageUrl = generateImageUrl(respBody.key);
-        resolve(imageUrl);
-      } else {
-        reject(new Error(`上传失败: ${respInfo.statusCode}`));
-      }
-    });
-  });
-}
-
-// 处理 base64 图片
+/**
+ * 处理 base64 图片
+ * 开发环境：保存到本地静态文件夹
+ * 生产环境：上传到七牛云
+ * @param {string} base64Data - base64 图片数据
+ * @returns {Promise<string>} 图片 URI
+ */
 async function saveBase64Image(base64Data) {
   if (!base64Data || !base64Data.startsWith('data:image/')) {
     return '';
@@ -103,11 +47,10 @@ async function saveBase64Image(base64Data) {
     return `/static/${imageName}`;
   }
 
-  // 生产环境：上传到七牛云
+  // 生产环境：上传到七牛云（使用 qiniuHelper 模块）
+  const { saveBase64Image: uploadToQiniu } = require('../utils/qiniuHelper');
   try {
-    const fileName = `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
-    const imageUrl = await uploadToQiniu(buffer, fileName);
-    return imageUrl;
+    return await uploadToQiniu(base64Data);
   } catch (err) {
     console.error('七牛云上传失败:', err);
     return '';
