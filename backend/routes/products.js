@@ -24,7 +24,7 @@ function getRealCdnDomain() {
   }
   // 确保域名格式正确
   if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
-    domain = `https://${domain}`;
+    domain = `http://${domain}`;
   }
   // 确保域名末尾没有斜杠
   return domain.replace(/\/$/, '');
