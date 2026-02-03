@@ -48,12 +48,16 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// 数据库同步（开发环境）
-// 注意：使用 sync() 而不是 sync({ alter: true })，避免重复索引问题
-// 如果需要修改表结构，请手动执行 SQL 或使用 sync({ force: true })（会删除数据）
-sequelize.sync({alter: process.env.SYNC_ALTER === 'true' })
-  .then(() => console.log('✓ 数据库同步成功'))
-  .catch(err => console.error('✗ 数据库同步失败:', err));
+// 数据库同步（仅开发环境）
+// 注意：生产环境完全跳过 sync，避免自动修改数据库结构
+// 如果需要修改表结构，请手动执行 SQL 迁移脚本
+if (process.env.NODE_ENV !== 'production') {
+  sequelize.sync({ alter: process.env.SYNC_ALTER === 'true' })
+    .then(() => console.log('✓ 数据库同步成功'))
+    .catch(err => console.error('✗ 数据库同步失败:', err));
+} else {
+  console.log('✓ 生产环境 - 跳过数据库同步');
+}
 
 // 路由
 app.use('/api/auth', authRouter);
