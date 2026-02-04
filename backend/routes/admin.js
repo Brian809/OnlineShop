@@ -138,7 +138,7 @@ router.put('/users/:id/toogleDisable', passport.authenticate('jwt', { session: f
 
 });
 
-// 加金币（仅管理员可访问）
+// 修改金币（仅管理员可访问）
 router.put('/users/:id/coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
 
     try {

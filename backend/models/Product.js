@@ -51,10 +51,17 @@ const Product = sequelize.define('Product', {
     type: DataTypes.TEXT,
     allowNull: true,
     comment: '商品详情图数组（JSON 数组格式，用于详情页展示）'
+  },
+  version: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    comment: '乐观锁版本号'
   }
 }, {
   tableName: 'products',
-  timestamps: true
+  timestamps: true,
+  // 启用乐观锁
+  version: true
 });
 
 module.exports = Product;

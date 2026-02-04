@@ -1,9 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { ElButton, ElMessage, ElEmpty } from 'element-plus';
+import { ElButton, ElMessage, ElEmpty, ElDialog, ElRadio, ElRadioGroup } from 'element-plus';
 import { ShoppingBag, Close, Delete } from '@element-plus/icons-vue';
-import { get, post, del, getImageUrl } from '@/utils/api';
-import { useUserStore } from '@/stores/user';
+import { get, post, del, useUserStore } from '@/utils/api';
 
 const userStore = useUserStore();
 
@@ -12,6 +11,10 @@ const isOpen = ref(false);
 const cartItems = ref([]);
 const loading = ref(false);
 const needLogin = ref(false);
+const checkoutDialogVisible = ref(false);
+const selectedAddressId = ref(null);
+const addresses = ref([]);
+const addressesLoading = ref(false);
 
 // 切换购物车显示
 function toggleCart() {
@@ -53,6 +56,24 @@ async function fetchCart() {
   }
 }
 
+// 获取地址列表
+async function fetchAddresses() {
+  addressesLoading.value = true;
+  try {
+    const data = await get('/users/me/addresses');
+    addresses.value = data || [];
+    // 默认选中第一个地址
+    if (addresses.value.length > 0) {
+      selectedAddressId.value = addresses.value[0].id;
+    }
+  } catch (error) {
+    console.error('获取地址列表失败:', error);
+    ElMessage.error('获取地址列表失败');
+  } finally {
+    addressesLoading.value = false;
+  }
+}
+
 // 从购物车移除商品
 async function removeFromCart(cartId) {
   try {
@@ -71,13 +92,19 @@ const totalPrice = computed(() => {
   }, 0).toFixed(2);
 });
 
-// 结算功能
-async function handleCheckout() {
+// 打开结算对话框
+function openCheckoutDialog() {
   if (cartItems.value.length === 0) {
     ElMessage.warning('购物车为空');
     return;
   }
+  
+  checkoutDialogVisible.value = true;
+  fetchAddresses();
+}
 
+// 结算功能
+async function handleCheckout() {
   try {
     // 遍历购物车商品，为每个商品创建订单
     for (const item of cartItems.value) {
@@ -85,11 +112,13 @@ async function handleCheckout() {
         userId: userStore.user.id,
         productId: item.productId,
         quantity: item.quantity,
-        totalPrice: item.Product.price * item.quantity
+        totalPrice: item.Product.price * item.quantity,
+        addressId: selectedAddressId.value || undefined
       });
     }
 
     ElMessage.success('订单创建成功');
+    checkoutDialogVisible.value = false;
     
     // 清空购物车
     for (const item of cartItems.value) {
@@ -167,7 +196,7 @@ defineExpose({
           class="cart-item"
         >
           <img
-            :src="getImageUrl(item.Product?.image)"
+            :src="item.Product?.image"
             :alt="item.Product?.name"
             class="item-image"
           />
@@ -192,11 +221,55 @@ defineExpose({
       <div class="total">
         总计: <span class="total-price">¥{{ totalPrice }}</span>
       </div>
-      <ElButton type="primary" @click="handleCheckout">
+      <ElButton type="primary" @click="openCheckoutDialog">
         去结算
       </ElButton>
     </div>
   </div>
+
+  <!-- 结算对话框 -->
+  <ElDialog
+    v-model="checkoutDialogVisible"
+    title="选择收货地址"
+    width="500px"
+  >
+    <div v-if="addressesLoading" class="loading">
+      加载中...
+    </div>
+    <ElEmpty v-else-if="addresses.length === 0" description="暂无地址">
+      <router-link to="/profile">
+        <ElButton type="primary">添加地址</ElButton>
+      </router-link>
+    </ElEmpty>
+    <div v-else>
+      <ElRadioGroup v-model="selectedAddressId" style="width: 100%">
+        <div
+          v-for="address in addresses"
+          :key="address.id"
+          class="address-option"
+        >
+          <ElRadio :label="address.id" style="width: 100%">
+            <div class="address-item">
+              <div class="address-header">
+                <span class="receiver-name">{{ address.fullName }}</span>
+                <span class="receiver-phone">{{ address.phone }}</span>
+                <el-tag v-if="address.isDefault" type="success" size="small">默认</el-tag>
+              </div>
+              <div class="address-detail">
+                {{ address.province }} {{ address.city }} {{ address.district }} {{ address.detailAddress }}
+              </div>
+            </div>
+          </ElRadio>
+        </div>
+      </ElRadioGroup>
+    </div>
+    <template #footer>
+      <ElButton @click="checkoutDialogVisible = false">取消</ElButton>
+      <ElButton type="primary" @click="handleCheckout" :disabled="addresses.length === 0">
+        确认结算
+      </ElButton>
+    </template>
+  </ElDialog>
 </template>
 <style scoped>
 .cart-button {
@@ -309,6 +382,47 @@ defineExpose({
   color: #f56c6c;
   font-weight: bold;
   font-size: 20px;
+}
+
+/* 地址选择样式 */
+.address-option {
+  margin-bottom: 12px;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  padding: 12px;
+  transition: all 0.3s;
+}
+
+.address-option:hover {
+  border-color: #409eff;
+}
+
+.address-item {
+  width: 100%;
+}
+
+.address-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.receiver-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: #303133;
+}
+
+.receiver-phone {
+  font-size: 12px;
+  color: #606266;
+}
+
+.address-detail {
+  font-size: 12px;
+  color: #606266;
+  line-height: 1.5;
 }
 
 /* 移动端适配 */

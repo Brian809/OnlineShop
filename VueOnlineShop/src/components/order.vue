@@ -93,6 +93,18 @@ onMounted(() => {
         </template>
       </ElTableColumn>
 
+      <ElTableColumn label="收货地址" min-width="200">
+        <template #default="{ row }">
+          <div v-if="row.receiverName" class="address-info">
+            <div class="receiver">
+              {{ row.receiverName }} {{ row.receiverPhone }}
+            </div>
+            <div class="address-text">{{ row.fullAddress }}</div>
+          </div>
+          <span v-else class="no-address">无地址信息</span>
+        </template>
+      </ElTableColumn>
+
       <ElTableColumn label="状态" width="100" align="center">
         <template #default="{ row }">
           <ElTag :type="statusMap[row.status]?.type || 'info'">
@@ -174,6 +186,26 @@ onMounted(() => {
 .price {
   font-weight: 600;
   color: #f56c6c;
+}
+
+.address-info {
+  font-size: 12px;
+}
+
+.receiver {
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.address-text {
+  color: #606266;
+  line-height: 1.4;
+}
+
+.no-address {
+  color: #909399;
+  font-size: 12px;
 }
 
 :deep(.el-table) {

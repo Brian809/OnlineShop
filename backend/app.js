@@ -70,6 +70,18 @@ app.use('/api/cart',cartRouter );
 app.use('/api/orders', ordersRouter);
 
 
+// 启动定时任务（自动取消超时订单）
+if (process.env.NODE_ENV !== 'test') {
+  const cancelExpiredOrders = require('./useful_scripts/cancelExpiredOrders');
+  
+  // 每5分钟执行一次
+  setInterval(() => {
+    console.log('执行定时任务：检查超时订单');
+    cancelExpiredOrders();
+  }, 5 * 60 * 1000);
+  
+  console.log('✓ 定时任务已启动（每5分钟检查一次超时订单）');
+}
 
 // 健康检查
 app.get('/health', (req, res) => {

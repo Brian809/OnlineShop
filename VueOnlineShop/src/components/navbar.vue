@@ -29,6 +29,10 @@
             <span class="icon">📋</span>
             <span>我的订单</span>
           </router-link>
+          <router-link to="/profile" class="nav-link">
+            <span class="icon">👤</span>
+            <span>个人中心</span>
+          </router-link>
           <router-link to="/admin/users" class="nav-link" v-if="isAdmin">
             <span class="icon">⚙️</span>
             <span>用户管理</span>
@@ -63,6 +67,10 @@
     <router-link to="/orders" class="mobile-nav-item" v-if="isLoggedIn">
       <span class="icon">📋</span>
       <span>订单</span>
+    </router-link>
+    <router-link to="/profile" class="mobile-nav-item" v-if="isLoggedIn">
+      <span class="icon">👤</span>
+      <span>我的</span>
     </router-link>
     <router-link to="/login" class="mobile-nav-item" v-if="!isLoggedIn">
       <span class="icon">👤</span>
