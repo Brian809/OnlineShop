@@ -1,4 +1,5 @@
 <template>
+<Navbar />
   <div class="login-container">
     <div class="login-box">
       <h1>{{ isLogin ? '登录' : '注册' }}</h1>
@@ -100,6 +101,8 @@ import { ElMessage } from 'element-plus'
 import { InfoFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { post } from '@/utils/api'
+import navbar from '@/components/navbar.vue'
+import Navbar from '@/components/navbar.vue'
 
 const router = useRouter()
 const userStore = useUserStore()

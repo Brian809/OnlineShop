@@ -1,4 +1,5 @@
 <template>
+  <Navbar />
   <div class="profile-page">
     <div class="container">
       <el-tabs v-model="activeTab" type="card">
@@ -159,6 +160,7 @@ import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { get, patch, post, put, del, useUserStore } from '@/utils/api';
 import { useRouter } from 'vue-router';
+import Navbar from '@/components/navbar.vue';
 
 const router = useRouter();
 const userStore = useUserStore();
