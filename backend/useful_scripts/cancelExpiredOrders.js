@@ -1,6 +1,7 @@
 const Order = require('../models/Orders');
 const Product = require('../models/Product');
 const sequelize = require('../config/database');
+const { Op } = require('sequelize');
 
 /**
  * 自动取消超时订单定时任务
@@ -22,7 +23,7 @@ async function cancelExpiredOrders() {
       where: {
         status: 'pending',
         expiresAt: {
-          [sequelize.Op.lt]: now
+          [Op.lt]: now
         }
       },
       transaction
