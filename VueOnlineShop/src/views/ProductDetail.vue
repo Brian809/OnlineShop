@@ -25,6 +25,16 @@
           <span class="category">{{ product.category }}</span>
         </div>
         <el-rate v-model="product.rating" disabled show-score text-color="#ff9900" />
+        
+        <!-- 操作按钮 -->
+        <div class="action-buttons">
+          <el-button type="warning" size="large" @click="addToCart">
+            加入购物车
+          </el-button>
+          <el-button type="danger" size="large" @click="buyNow">
+            立即购买
+          </el-button>
+        </div>
       </div>
 
       <!-- 商品详情图 -->
@@ -53,12 +63,14 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
-import { get } from '@/utils/api';
+import { useRoute, useRouter } from 'vue-router';
+import { get, post, useUserStore } from '@/utils/api';
 import { ElMessage } from 'element-plus';
 import { Loading, WarningFilled } from '@element-plus/icons-vue';
 
 const route = useRoute();
+const router = useRouter();
+const userStore = useUserStore();
 const product = ref(null);
 const loading = ref(true);
 
@@ -102,6 +114,49 @@ const loadProductDetail = async () => {
     loading.value = false;
   }
 };
+
+// 添加到购物车
+async function addToCart() {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录');
+    router.push('/login');
+    return;
+  }
+
+  try {
+    await post('/cart/add', {
+      productId: product.value.id,
+      quantity: 1
+    });
+    ElMessage.success('已添加到购物车');
+  } catch (error) {
+    console.error('添加到购物车失败:', error);
+    ElMessage.error(error.message || '添加到购物车失败');
+  }
+}
+
+// 立即购买
+async function buyNow() {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录');
+    router.push('/login');
+    return;
+  }
+
+  try {
+    await post('/orders/create', {
+      userId: userStore.user.id,
+      productId: product.value.id,
+      quantity: 1,
+      totalPrice: product.value.price
+    });
+    ElMessage.success('订单创建成功');
+    router.push('/orders');
+  } catch (error) {
+    console.error('创建订单失败:', error);
+    ElMessage.error(error.message || '创建订单失败');
+  }
+}
 
 onMounted(() => {
   loadProductDetail();
@@ -186,6 +241,18 @@ onMounted(() => {
   color: #999;
   display: flex;
   align-items: center;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.action-buttons .el-button {
+  flex: 1;
+  font-size: 16px;
+  padding: 15px 30px;
 }
 
 .detail-images {

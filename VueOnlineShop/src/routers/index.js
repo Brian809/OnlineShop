@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus';
 import Home from '../views/Home.vue';
 import Login from '../views/Login.vue';
 import ProductDetail from '../views/ProductDetail.vue';
+import Orders from '../views/Orders.vue';
 import UserManagement from '../views/admin/userManagement.vue';
 import ProductManagement from '../views/admin/productManagement.vue';
 
@@ -25,6 +26,12 @@ const router = createRouter({
       path: '/product/:id',
       name: 'ProductDetail',
       component: ProductDetail
+    },
+    {
+      path: '/orders',
+      name: 'Orders',
+      component: Orders,
+      meta: { requiresAuth: true }
     },
     {
       path: '/admin/users',

@@ -129,4 +129,7 @@ export function del(endpoint, options = {}) {
   return request(endpoint, { ...options, method: 'DELETE' })
 }
 
+// 导出 useUserStore 供组件使用
+export { useUserStore }
+
 export default request

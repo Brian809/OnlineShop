@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-VueOnlineShop 是一个全栈在线商城系统，由前端（Vue 3）和后端（Node.js + Express）两部分组成。项目提供完整的电商功能，包括用户认证、商品管理、用户管理、购物车、金币系统、图片上传等。图片存储使用腾讯云 COS，数据库仅存储图片 URI 而非 base64 数据。
+VueOnlineShop 是一个全栈在线商城系统，由前端（Vue 3）和后端（Node.js + Express）两部分组成。项目提供完整的电商功能，包括用户认证、商品管理、用户管理、购物车、订单系统、金币系统、图片上传等。图片存储使用腾讯云 COS，数据库仅存储图片 URI 而非 base64 数据。
 
 ### 项目结构
 
@@ -38,7 +38,7 @@ OnlineShop/
 │
 ├── AGENTS.md               # 项目文档
 ├── QUICKSTART.md           # 快速开始指南
-└── roadmap.md              # 项目路线图
+└── SETUP_COMPLETE.md       # 设置完成指南
 ```
 
 ---
@@ -332,15 +332,18 @@ backend/
 │   ├── database.js      # Sequelize 数据库配置
 │   └── passport.js      # Passport 认证配置
 ├── models/              # Sequelize 数据模型
+│   ├── index.js         # 模型关联定义
 │   ├── User.js          # 用户模型
 │   ├── Product.js       # 商品模型
-│   └── Cart.js          # 购物车模型
+│   ├── Cart.js          # 购物车模型
+│   └── Orders.js        # 订单模型
 ├── routes/              # API 路由
 │   ├── auth.js          # 认证路由
 │   ├── users.js         # 用户路由
 │   ├── products.js      # 商品路由
 │   ├── admin.js         # 管理员路由
 │   ├── cart.js          # 购物车路由
+│   ├── orders.js        # 订单路由
 │   └── normalFunctions.js  # 通用功能路由
 ├── utils/               # 工具函数
 │   └── cosHelper.js     # 腾讯云 COS 辅助模块
@@ -475,6 +478,16 @@ FORCE_MIGRATE=true node useful_scripts/migrate.js --force
 - `DELETE /removeSeveral` - 删除多个购物车商品（需要认证）
   - 请求体：`{ productIds }`（商品 ID 数组）
 
+#### 订单相关 (`/api/orders`)
+- `POST /create` - 创建订单（需要认证）
+  - 请求体：`{ userId, productId, quantity, totalPrice }`
+  - 返回：创建的订单对象
+  - 订单状态默认为 'pending'
+- `GET /user/:userId` - 获取指定用户的订单列表（需要认证）
+  - 参数：用户 ID
+  - 返回：订单列表，包含关联的商品详情
+  - 权限验证：只能查看自己的订单
+
 #### 用户相关 (`/api/users`)
 - `GET /` - 获取用户列表
 - `GET /:id` - 获取用户详情
@@ -514,6 +527,7 @@ FORCE_MIGRATE=true node useful_scripts/migrate.js --force
 - 扩展字段：firstName, lastName, phone, address, pic
 - 密码加密存储（bcryptjs）
 - 唯一性约束：username, email
+- 关联：hasMany(Cart), hasMany(Order)
 
 #### Product 模型
 - 商品信息（id, name, description, price, stock, category）
@@ -523,12 +537,47 @@ FORCE_MIGRATE=true node useful_scripts/migrate.js --force
   - `detailImages`（TEXT, JSON 格式）：商品详情图数组（用于详情页展示）
 - 评分字段：rating
 - 时间戳：createdAt, updatedAt
+- 关联：hasMany(Cart), hasMany(Order)
 
 #### Cart 模型
 - 购物车数据
 - 用户与商品的关联关系
 - 字段：userId, productId, quantity
 - 支持数量累加
+- 关联：belongsTo(User), belongsTo(Product)
+
+#### Order 模型（新增）
+- 订单数据
+- 字段：
+  - `id` (INTEGER, 主键, 自增)
+  - `userId` (INTEGER, 外键, 关联 User)
+  - `productId` (INTEGER, 外键, 关联 Product)
+  - `quantity` (INTEGER, 商品数量)
+  - `totalPrice` (DECIMAL(10,2), 订单总价)
+  - `status` (STRING, 订单状态, 默认 'pending')
+  - `createdAt` (DATE, 创建时间)
+  - `updatedAt` (DATE, 更新时间)
+- 关联：belongsTo(User), belongsTo(Product)
+
+### 模型关联关系
+
+```
+User (用户)
+  ├─ hasMany(Cart)     一个用户有多个购物车项
+  └─ hasMany(Order)    一个用户有多个订单
+
+Product (商品)
+  ├─ hasMany(Cart)     一个商品在多个购物车中
+  └─ hasMany(Order)    一个商品在多个订单中
+
+Cart (购物车)
+  ├─ belongsTo(User)   属于一个用户
+  └─ belongsTo(Product) 关联一个商品
+
+Order (订单)
+  ├─ belongsTo(User)   属于一个用户
+  └─ belongsTo(Product) 关联一个商品
+```
 
 ### 认证机制
 
@@ -639,7 +688,7 @@ git push origin main
 | 阶段3 | 商品管理系统 | ✅ 完成 | ⭐⭐⭐⭐⭐ |
 | 阶段4 | 购物车功能 | ✅ 完成 | ⭐⭐⭐⭐ |
 | 阶段5 | 商品详情页 | ✅ 完成 | ⭐⭐⭐⭐ |
-| 阶段6 | 订单系统 | ⏳ 待开发 | ⭐⭐⭐⭐ |
+| 阶段6 | 订单系统 | ✅ 完成 | ⭐⭐⭐⭐ |
 | 阶段7 | 支付集成 | ⏳ 待开发 | ⭐⭐⭐ |
 | 阶段8 | 用户个人中心 | ⏳ 待开发 | ⭐⭐⭐ |
 | 阶段9 | 评价系统 | ⏳ 待开发 | ⭐⭐ |
@@ -733,23 +782,22 @@ git push origin main
 - ✅ 路由配置（/product/:id）
 - ✅ Card 组件跳转功能
 
-### 第六阶段：订单系统 ⏳
+### 第六阶段：订单系统 ✅
 
 #### 后端
-- ⏳ 订单模型设计 (Order Model)
-- ⏳ 订单项目模型 (OrderItem Model)
-- ⏳ 创建订单接口 (POST /api/orders)
-- ⏳ 获取订单列表接口 (GET /api/orders)
-- ⏳ 获取订单详情接口 (GET /api/orders/:id)
-- ⏳ 订单状态管理
-- ⏳ 订单取消功能
+- ✅ 订单模型设计 (Order Model)
+- ✅ 模型关联配置（User-Order, Product-Order）
+- ✅ 创建订单接口 (POST /api/orders/create)
+- ✅ 获取用户订单列表接口 (GET /api/orders/user/:userId)
+- ✅ 订单状态管理（status 字段）
+- ✅ 权限验证（只能查看自己的订单）
 
 #### 前端
-- ⏳ 结算页面
-- ⏳ 订单确认页面
-- ⏳ 订单历史页面
-- ⏳ 订单详情页面
-- ⏳ 订单追踪
+- ⏳ 结算页面（待实现）
+- ⏳ 订单确认页面（待实现）
+- ⏳ 订单历史页面（待实现）
+- ⏳ 订单详情页面（待实现）
+- ⏳ 订单追踪（待实现）
 
 ### 第七阶段：支付集成 ⏳
 
@@ -836,15 +884,18 @@ git push origin main
 ### 前端待办
 - [ ] 实现 `card.vue` 中的 `buyNow` 方法
 - [ ] 实现购物车结算页面
-- [ ] 实现订单管理页面
+- [ ] 实现订单管理页面（订单列表、订单详情）
+- [ ] 实现订单历史页面
 - [ ] 完善错误处理和加载状态
 - [ ] 添加单元测试
 
 ### 后端待办
-- [ ] 实现订单管理 API
+- [ ] 添加订单状态更新接口（支付、发货、完成等）
+- [ ] 添加订单取消功能
 - [ ] 添加数据验证中间件（使用 joi）
 - [ ] 添加 API 文档（Swagger）
 - [ ] 实现支付集成
+- [ ] 添加库存扣减逻辑（创建订单时）
 
 ---
 
@@ -916,6 +967,7 @@ import { post } from '@/utils/api'
 - JWT Token 有效期限制
 - 被禁用用户无法登录
 - 管理员权限检查
+- 订单查询权限验证（只能查看自己的订单）
 
 ### 响应式设计
 - 使用 Mobile First 原则
@@ -973,6 +1025,28 @@ node useful_scripts/migrate.js
 4. 测试应用功能
 5. 提交代码时在提交信息中注明"已执行数据库迁移"
 
+### 订单系统设计规范
+
+#### 订单状态流转
+```
+pending（待处理）→ paid（已支付）→ shipped（已发货）→ delivered（已送达）→ completed（已完成）
+                                              ↓
+                                          cancelled（已取消）
+```
+
+#### 订单创建流程
+1. 用户从购物车或商品详情页发起购买
+2. 前端发送订单创建请求（包含 userId, productId, quantity, totalPrice）
+3. 后端验证用户登录状态
+4. 后端创建订单记录（status 默认为 'pending'）
+5. 返回订单信息给前端
+6. 前端跳转到订单确认或支付页面
+
+#### 订单查询权限
+- 普通用户：只能查询自己的订单
+- 管理员：可以查询所有订单
+- 使用 JWT Token 中的 userId 进行权限验证
+
 ---
 
 ## 注意事项
@@ -988,6 +1062,8 @@ node useful_scripts/migrate.js
 9. 图片上传支持最大 10MB 的请求体
 10. Sequelize 查询必须使用 `where` 子句
 11. 图片存储使用腾讯云 COS，确保 COS 配置正确
+12. 订单创建后需要手动更新订单状态（待支付流程集成）
+13. 创建订单时需要考虑库存扣减（待实现）
 
 ---
 
@@ -1022,6 +1098,13 @@ node useful_scripts/migrate.js
 - 检查后端 cart.js 路由是否正常加载
 - 查看浏览器控制台错误信息
 - 确认商品 ID 正确
+
+### 订单问题
+- 确保用户已登录
+- 检查后端 orders.js 路由是否正常加载
+- 验证请求参数（userId, productId, quantity, totalPrice）
+- 确认用户有权限查看该订单（只能查看自己的订单）
+- 检查数据库中的 orders 表是否存在
 
 ### 图片上传失败
 - 检查请求体大小（限制 10MB）
@@ -1065,6 +1148,12 @@ node useful_scripts/migrate.js
 ## 项目历史
 
 ### 最新更新
+- **新增订单系统** - 完整的订单功能模块
+  - 后端：Orders 模型（包含 userId, productId, quantity, totalPrice, status 字段）
+  - 后端：订单路由（POST /api/orders/create 创建订单，GET /api/orders/user/:userId 获取用户订单）
+  - 后端：模型关联配置（User-Order, Product-Order）
+  - 后端：权限验证（只能查看自己的订单）
+  - 订单状态管理（pending 状态待支付流程集成）
 - **新增商品详情页** - 完整的商品详情展示功能
   - 前端：ProductDetail.vue 组件
   - 路由配置：/product/:id

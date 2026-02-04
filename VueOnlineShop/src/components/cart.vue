@@ -72,8 +72,39 @@ const totalPrice = computed(() => {
 });
 
 // 结算功能
-function handleCheckout() {
-  ElMessage.info('结算功能待实现');
+async function handleCheckout() {
+  if (cartItems.value.length === 0) {
+    ElMessage.warning('购物车为空');
+    return;
+  }
+
+  try {
+    // 遍历购物车商品，为每个商品创建订单
+    for (const item of cartItems.value) {
+      await post('/orders/create', {
+        userId: userStore.user.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        totalPrice: item.Product.price * item.quantity
+      });
+    }
+
+    ElMessage.success('订单创建成功');
+    
+    // 清空购物车
+    for (const item of cartItems.value) {
+      await del(`/cart/${item.id}`);
+    }
+    
+    // 刷新购物车
+    fetchCart();
+    
+    // 跳转到订单页面
+    window.location.href = '/orders';
+  } catch (error) {
+    console.error('结算失败:', error);
+    ElMessage.error(error.message || '结算失败');
+  }
 }
 
 // 组件挂载时获取购物车数据（仅当用户已登录）

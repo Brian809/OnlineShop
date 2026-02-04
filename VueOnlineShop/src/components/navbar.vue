@@ -25,6 +25,10 @@
           </router-link>
         </template>
         <template v-else>
+          <router-link to="/orders" class="nav-link">
+            <span class="icon">📋</span>
+            <span>我的订单</span>
+          </router-link>
           <router-link to="/admin/users" class="nav-link" v-if="isAdmin">
             <span class="icon">⚙️</span>
             <span>用户管理</span>
@@ -55,6 +59,10 @@
     <router-link to="/contact" class="mobile-nav-item">
       <span class="icon">📞</span>
       <span>联系</span>
+    </router-link>
+    <router-link to="/orders" class="mobile-nav-item" v-if="isLoggedIn">
+      <span class="icon">📋</span>
+      <span>订单</span>
     </router-link>
     <router-link to="/login" class="mobile-nav-item" v-if="!isLoggedIn">
       <span class="icon">👤</span>

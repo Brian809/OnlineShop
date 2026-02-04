@@ -108,9 +108,10 @@ button:hover {
 <script setup>
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { post } from '@/utils/api';
+import { post, useUserStore } from '@/utils/api';
 
 const router = useRouter();
+const userStore = useUserStore();
 
 // 定义 props
 const props = defineProps({
@@ -160,8 +161,24 @@ async function addToCart() {
 }
 
 // 立即购买
-function buyNow() {
-  // TODO: 实现立即购买功能
-  ElMessage.info('立即购买功能待实现');
+async function buyNow() {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录');
+    router.push('/login');
+    return;
+  }
+
+  try {
+    await post('/orders/create', {
+      userId: userStore.user.id,
+      productId: props.productId,
+      quantity: 1,
+      totalPrice: props.price
+    });
+    ElMessage.success('订单创建成功');
+  } catch (error) {
+    console.error('创建订单失败:', error);
+    ElMessage.error(error.message || '创建订单失败');
+  }
 }
 </script>
