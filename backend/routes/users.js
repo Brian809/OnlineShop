@@ -4,7 +4,7 @@ const passport = require('passport');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Address = require('../models/Address');
-const { Sequelize } = require('sequelize');
+const { Sequelize, Op } = require('sequelize');
 
 // 获取当前用户信息
 router.get('/me', passport.authenticate('jwt', { session: false }), async (req, res) => {
@@ -40,7 +40,7 @@ router.patch('/me', passport.authenticate('jwt', { session: false }), async (req
       const existingUser = await User.findOne({
         where: {
           username,
-          id: { [Sequelize.Op.ne]: userId }
+          id: { [Op.ne]: userId }
         }
       });
       if (existingUser) {
@@ -54,7 +54,7 @@ router.patch('/me', passport.authenticate('jwt', { session: false }), async (req
       const existingUser = await User.findOne({
         where: {
           email,
-          id: { [Sequelize.Op.ne]: userId }
+          id: { [Op.ne]: userId }
         }
       });
       if (existingUser) {
@@ -210,7 +210,7 @@ router.put('/me/addresses/:addressId', passport.authenticate('jwt', { session: f
     if (isDefault) {
       await Address.update(
         { isDefault: false },
-        { where: { userId, id: { [Sequelize.Op.ne]: addressId } } }
+        { where: { userId, id: { [Op.ne]: addressId } } }
       );
     }
 

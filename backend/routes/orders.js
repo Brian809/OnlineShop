@@ -4,6 +4,7 @@ const Order = require('../models/Orders');
 const Product = require('../models/Product');
 const passport = require('passport');
 const sequelize = require('../config/database');
+const { Op } = require('sequelize');
 
 // 订单超时时间（毫秒）
 const ORDER_TIMEOUT = 30 * 60 * 1000; // 30分钟
@@ -53,7 +54,7 @@ router.post('/create', passport.authenticate('jwt', { session: false }), async (
         where: {
           id: productId,
           stock: {
-            [sequelize.Op.gte]: quantity // 确保库存足够
+            [Op.gte]: quantity // 确保库存足够
           }
         },
         transaction
