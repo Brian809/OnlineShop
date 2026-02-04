@@ -13,15 +13,6 @@ require('./config/passport');
 const sequelize = require('./config/database');
 require('./models'); // 初始化模型关联
 
-// 路由
-const authRouter = require('./routes/auth');
-const productsRouter = require('./routes/products');
-const usersRouter = require('./routes/users');
-const adminRouter = require('./routes/admin');
-const normalFunctionsRouter = require('./routes/normalFunctions');
-const cartRouter = require('./routes/cart');
-const ordersRouter = require('./routes/orders');
-
 var app = express();
 
 // CORS 配置
@@ -61,6 +52,15 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // 路由
+const authRouter = require('./routes/auth');
+const productsRouter = require('./routes/products');
+const usersRouter = require('./routes/users');
+const adminRouter = require('./routes/admin');
+const normalFunctionsRouter = require('./routes/normalFunctions');
+const cartRouter = require('./routes/cart');
+const ordersRouter = require('./routes/orders');
+const paymentRouter = require('./routes/payment');
+
 app.use('/api/auth', authRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/users', usersRouter);
@@ -68,18 +68,18 @@ app.use('/api/admin', adminRouter);
 app.use('/api/normal', normalFunctionsRouter);
 app.use('/api/cart',cartRouter );
 app.use('/api/orders', ordersRouter);
-
+app.use('/api/payment', paymentRouter);
 
 // 启动定时任务（自动取消超时订单）
 if (process.env.NODE_ENV !== 'test') {
   const cancelExpiredOrders = require('./useful_scripts/cancelExpiredOrders');
-  
+
   // 每5分钟执行一次
   setInterval(() => {
     console.log('执行定时任务：检查超时订单');
     cancelExpiredOrders();
   }, 5 * 60 * 1000);
-  
+
   console.log('✓ 定时任务已启动（每5分钟检查一次超时订单）');
 }
 

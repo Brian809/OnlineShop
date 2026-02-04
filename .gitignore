@@ -49,3 +49,18 @@ coverage/
 # 生产配置
 backend/.env
 backend/.env.local
+
+# 证书文件
+*.pem
+*.crt
+*.key
+*.p12
+*.pfx
+*.der
+*.cer
+*.crl
+*.csr
+*.p7b
+*.p7c
+*.p7r
+*.p7s

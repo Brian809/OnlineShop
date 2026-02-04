@@ -12,11 +12,17 @@ const loading = ref(false);
 // 订单状态映射
 const statusMap = {
   pending: { label: '待支付', type: 'warning' },
+  paying: { label: '支付中', type: 'info' },
   paid: { label: '已支付', type: 'success' },
   shipped: { label: '已发货', type: 'primary' },
   delivered: { label: '已送达', type: 'info' },
   completed: { label: '已完成', type: 'success' },
   cancelled: { label: '已取消', type: 'danger' }
+};
+
+// 跳转到支付页面
+const goToPayment = (orderId) => {
+  router.push(`/payment/${orderId}`);
 };
 
 // 获取用户订单列表
@@ -43,6 +49,16 @@ const fetchOrders = async () => {
 // 跳转到商品详情
 const goToProduct = (productId) => {
   router.push(`/product/${productId}`);
+};
+
+// 获取状态类型
+const getStatusType = (status) => {
+  return statusMap[status]?.type || 'info';
+};
+
+// 获取状态文本
+const getStatusText = (status) => {
+  return statusMap[status]?.label || status;
 };
 
 onMounted(() => {
@@ -110,6 +126,27 @@ onMounted(() => {
           <ElTag :type="statusMap[row.status]?.type || 'info'">
             {{ statusMap[row.status]?.label || row.status }}
           </ElTag>
+        </template>
+      </ElTableColumn>
+
+      <ElTableColumn label="操作" width="150" align="center">
+        <template #default="{ row }">
+          <el-button
+            v-if="row.status === 'pending'"
+            type="primary"
+            size="small"
+            @click="goToPayment(row.id)"
+          >
+            去支付
+          </el-button>
+          <el-button
+            v-else-if="row.status === 'paid'"
+            type="success"
+            size="small"
+            disabled
+          >
+            已支付
+          </el-button>
         </template>
       </ElTableColumn>
 

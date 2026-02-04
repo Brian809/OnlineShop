@@ -7,6 +7,7 @@ import Login from '../views/Login.vue';
 import ProductDetail from '../views/ProductDetail.vue';
 import Orders from '../views/Orders.vue';
 import Profile from '../views/Profile.vue';
+import Payment from '../views/Payment.vue';
 import UserManagement from '../views/admin/userManagement.vue';
 import ProductManagement from '../views/admin/productManagement.vue';
 import OrderManagement from '../views/admin/orderManagement.vue';
@@ -39,6 +40,12 @@ const router = createRouter({
       path: '/profile',
       name: 'Profile',
       component: Profile,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/payment/:id',
+      name: 'Payment',
+      component: Payment,
       meta: { requiresAuth: true }
     },
     {

@@ -56,6 +56,16 @@ const Order = sequelize.define('Order', {
     type: DataTypes.STRING,
     defaultValue: null,
   },
+  alipayTradeNo: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: '支付宝交易号'
+  },
+  paidAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: '支付时间'
+  },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

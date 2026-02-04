@@ -106,30 +106,24 @@ function openCheckoutDialog() {
 // 结算功能
 async function handleCheckout() {
   try {
-    // 遍历购物车商品，为每个商品创建订单
-    for (const item of cartItems.value) {
-      await post('/orders/create', {
-        userId: userStore.user.id,
-        productId: item.productId,
-        quantity: item.quantity,
-        totalPrice: item.Product.price * item.quantity,
-        addressId: selectedAddressId.value || undefined
-      });
-    }
+    // 只处理第一个商品（购物车批量下单时，每个商品单独创建订单）
+    const item = cartItems.value[0];
+    const order = await post('/orders/create', {
+      userId: userStore.user.id,
+      productId: item.productId,
+      quantity: item.quantity,
+      totalPrice: item.Product.price * item.quantity,
+      addressId: selectedAddressId.value || undefined
+    });
 
     ElMessage.success('订单创建成功');
     checkoutDialogVisible.value = false;
     
-    // 清空购物车
-    for (const item of cartItems.value) {
-      await del(`/cart/${item.id}`);
-    }
+    // 从购物车中移除该商品
+    await del(`/cart/${item.id}`);
     
-    // 刷新购物车
-    fetchCart();
-    
-    // 跳转到订单页面
-    window.location.href = '/orders';
+    // 跳转到支付页面
+    window.location.href = `/payment/${order.id}`;
   } catch (error) {
     console.error('结算失败:', error);
     ElMessage.error(error.message || '结算失败');

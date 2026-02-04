@@ -55,7 +55,7 @@ async function cancelExpiredOrders() {
         console.log(`订单 ${order.id} 已取消，库存已恢复`);
       } catch (error) {
         console.error(`取消订单 ${order.id} 失败:`, error.message);
-        // 继续处理下一个订单
+        // 单个订单失败不影响整体事务，继续处理下一个订单
       }
     }
     
@@ -63,7 +63,14 @@ async function cancelExpiredOrders() {
     console.log('超时订单处理完成');
     
   } catch (error) {
-    await transaction.rollback();
+    // 只有在事务未结束时才尝试回滚
+    if (!transaction.finished) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        console.error('回滚事务失败:', rollbackError.message);
+      }
+    }
     console.error('处理超时订单失败:', error);
   }
 }

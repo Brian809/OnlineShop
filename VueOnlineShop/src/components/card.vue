@@ -169,13 +169,14 @@ async function buyNow() {
   }
 
   try {
-    await post('/orders/create', {
+    const order = await post('/orders/create', {
       userId: userStore.user.id,
       productId: props.productId,
       quantity: 1,
       totalPrice: props.price
     });
     ElMessage.success('订单创建成功');
+    router.push(`/payment/${order.id}`);
   } catch (error) {
     console.error('创建订单失败:', error);
     ElMessage.error(error.message || '创建订单失败');

@@ -218,7 +218,7 @@ router.get('/users/:userId/addresses', passport.authenticate('jwt', { session: f
 });
 
 // 更新订单状态（仅管理员可访问），订单数据不可被删除，仅可更新状态
-router.put('/orders/:id/status', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.patch('/orders/:id/status', passport.authenticate('jwt', { session: false }), async (req, res) => {
     try {
         // 检查是否为管理员
         if (!req.user.isAdmin) {

@@ -514,6 +514,28 @@ FORCE_MIGRATE=true node useful_scripts/migrate.js --force
   - 请求体大小限制：10MB
   - 返回：`{ message, imageUrl }`
 
+#### 支付相关 (`/api/payment`)
+- `POST /create` - 创建支付订单（需要认证）
+  - 请求体：`{ orderId, returnUrl }`
+  - 返回：`{ message, payUrl }`（支付宝支付页面 URL）
+  - 支持订单状态：pending, paying
+- `GET /return` - 支付成功同步回调（支付宝跳转）
+  - 接收支付宝回调参数
+  - 主动查询支付宝支付状态并更新订单
+  - 重定向到前端订单列表页面
+- `POST /notify` - 支付成功异步通知（支付宝服务器回调）
+  - 验证支付宝签名
+  - 更新订单状态为 paid
+  - 记录支付宝交易号和支付时间
+- `GET /query/:orderId` - 查询支付状态（需要认证）
+  - 调用支付宝查询接口
+  - 返回：`{ status, order }`
+- `POST /refund` - 申请退款（需要认证）
+  - 请求体：`{ orderId, refundAmount }`
+  - 调用支付宝退款接口
+  - 更新订单状态为 refunded
+  - 恢复库存
+
 #### 健康检查
 - `GET /health` - 服务健康状态
 
@@ -799,13 +821,14 @@ git push origin main
 - ⏳ 订单详情页面（待实现）
 - ⏳ 订单追踪（待实现）
 
-### 第七阶段：支付集成 ⏳
+### 第七阶段：支付集成 ✅
 
-- ⏳ 支付网关集成（支付宝/微信支付）
-- ⏳ 支付流程实现
-- ⏳ 支付回调处理
-- ⏳ 发票生成
-- ⏳ 退款功能
+- ✅ 支付网关集成（支付宝沙箱环境）
+- ✅ 支付流程实现（证书方式）
+- ✅ 支付回调处理（同步回调 + 主动查询）
+- ✅ 支付状态轮询（前端每3秒查询）
+- ✅ 退款功能
+- ⏳ 发票生成（待开发）
 
 ### 第八阶段：用户个人中心 ⏳
 
@@ -890,11 +913,11 @@ git push origin main
 - [ ] 添加单元测试
 
 ### 后端待办
-- [ ] 添加订单状态更新接口（支付、发货、完成等）
-- [ ] 添加订单取消功能
 - [ ] 添加数据验证中间件（使用 joi）
 - [ ] 添加 API 文档（Swagger）
-- [ ] 实现支付集成
+- [ ] 生产环境部署配置
+- [ ] 支付宝异步通知接口配置（需要公网域名）
+- [ ] 发票生成功能
 - [ ] 添加库存扣减逻辑（创建订单时）
 
 ---
@@ -1169,11 +1192,42 @@ pending（待处理）→ paid（已支付）→ shipped（已发货）→ deliv
 - 图片会在固定尺寸容器中裁剪显示
 - 确保样式正确加载
 
+### 支付相关问题
+- **错误码 AE150003030**：收款账号和付款账号一致
+  - 原因：在沙箱环境中使用商家账号扫描自己创建的订单
+  - 解决：使用沙箱买家账号扫码付款
+- **订单状态未更新**：
+  - 确保 ALIPAY_RETURN_URL 配置正确（http://localhost:3000/api/payment/return）
+  - 检查后端日志中的支付宝查询结果
+  - 支付完成后会主动查询支付宝接口确认支付状态
+  - 支付完成后会自动跳转到订单列表页面
+- **支付后跳转错误**：
+  - 确保 Vite 代理配置正确（/api → http://localhost:3000）
+  - 确保 returnUrl 指向后端地址而不是前端地址
+- **验签出错**：
+  - 确保 ALIPAY_PRIVATE_KEY 是应用私钥（RSA 格式）
+  - 确保 ALIPAY_PUBLIC_KEY 是支付宝公钥（不是应用公钥）
+  - 证书文件必须放在 backend/certs/ 目录
+- **API 请求错误 Not Found**：
+  - 确保 admin 路由使用 PATCH 方法而不是 PUT
+  - 检查前端和后端的 HTTP 方法是否一致
+
 ---
 
 ## 项目历史
 
 ### 最新更新
+- **新增支付宝支付系统** - 完整的支付集成模块
+  - 后端：支付配置（证书方式，使用 alipay-sdk 4.14.0）
+  - 后端：支付路由（POST /api/payment/create 创建支付，GET /api/payment/return 同步回调）
+  - 后端：支付查询（GET /api/payment/query/:orderId 查询支付状态）
+  - 后端：退款功能（POST /api/payment/refund 申请退款）
+  - 前端：Payment.vue 支付页面（订单信息、倒计时、状态轮询）
+  - 前端：支付状态自动检测（每 3 秒轮询）
+  - 支付流程：pending → paying → paid → shipped → delivered → completed
+  - 订单状态更新：支付成功后自动更新订单状态
+  - 证书文件：appPublicCert.crt、alipayPublicCert.crt、alipayRootCert.crt
+  - 支付宝沙箱环境集成
 - **新增订单系统** - 完整的订单功能模块
   - 后端：Orders 模型（包含 userId, productId, quantity, totalPrice, status 字段）
   - 后端：订单路由（POST /api/orders/create 创建订单，GET /api/orders/user/:userId 获取用户订单）
@@ -1222,3 +1276,154 @@ pending（待处理）→ paid（已支付）→ shipped（已发货）→ deliv
 - 修复登录后 isAdmin 字段缺失的问题
 - 替换图片占位符为国内服务
 - 添加示例商品数据
+---
+
+## 支付系统配置说明
+
+### 支付宝开发环境配置
+
+#### 1. 获取应用信息
+- 登录支付宝开放平台（https://open.alipay.com/）
+- 进入控制台 → 研发服务 → 研发服务 → 沙箱
+- 记录 APPID（例如：9021000160613958）
+
+#### 2. 配置密钥（证书方式）
+- 进入应用详情 → 开发信息 → 接口加签方式
+- 选择"证书方式"
+- 下载以下文件到 `backend/certs/` 目录：
+  - `appPublicCert.crt` - 应用公钥证书
+  - `alipayPublicCert.crt` - 支付宝公钥证书
+  - `alipayRootCert.crt` - 支付宝根证书
+- 复制应用私钥（包含 RSA 格式）到 `.env` 文件的 `ALIPAY_PRIVATE_KEY`
+
+#### 3. 配置环境变量
+在 `backend/.env` 文件中添加：
+```bash
+# 支付宝配置（证书方式）
+ALIPAY_APP_ID=你的应用ID
+ALIPAY_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
+你的应用私钥内容
+...
+-----END RSA PRIVATE KEY-----"
+ALIPAY_GATEWAY=https://openapi-sandbox.dl.alipaydev.com/gateway.do
+ALIPAY_NOTIFY_URL=http://localhost:3000/api/payment/notify
+ALIPAY_RETURN_URL=http://localhost:3000/api/payment/return
+```
+
+#### 4. 沙箱账号测试
+- 在支付宝开放平台查看沙箱账号
+- 使用**买家账号**登录手机支付宝
+- 扫码支付（不能使用商家账号，否则会报错 AE150003030）
+
+### 生产环境配置（待实施）
+
+#### 1. 切换网关地址
+```bash
+ALIPAY_GATEWAY=https://openapi.alipay.com/gateway.do
+```
+
+#### 2. 配置异步通知 URL
+- 需要一个公网可访问的域名
+- 配置 `ALIPAY_NOTIFY_URL=https://your-domain.com/api/payment/notify`
+- 在支付宝开放平台配置异步通知地址
+
+#### 3. 配置同步返回 URL
+```bash
+ALIPAY_RETURN_URL=https://your-domain.com/api/payment/return
+```
+
+#### 4. 证书续期
+- 证书有有效期（通常1年）
+- 到期前需要在支付宝开放平台重新生成证书
+- 下载新证书并替换 `backend/certs/` 目录中的文件
+
+### 支付流程说明
+
+#### 订单状态流转
+```
+pending（待支付）→ paying（支付中）→ paid（已支付）→ shipped（已发货）→ delivered（已送达）→ completed（已完成）
+                                    ↓
+                              cancelled（已取消）
+```
+
+#### 支付流程
+1. 用户点击"立即支付"
+2. 前端调用 `POST /api/payment/create` 创建支付订单
+3. 后端调用支付宝接口生成支付链接
+4. 跳转到支付宝支付页面
+5. 用户扫码支付
+6. 支付宝同步回调到 `/api/payment/return`
+7. 后端主动查询支付状态并更新订单
+8. 跳转到前端订单列表页面
+
+#### 支付状态监测
+- **同步回调**：支付完成后立即触发（可靠）
+- **前端轮询**：支付页面每 3 秒查询一次支付状态（备用）
+- **异步通知**：支付宝服务器回调（需要公网域名，生产环境使用）
+
+### 常见问题解决
+
+#### 错误码 AE150003030
+- 原因：收款账号和付款账号一致
+- 解决：使用沙箱买家账号扫码付款
+
+#### 验签出错
+- 检查 ALIPAY_PRIVATE_KEY 是否正确（应用私钥）
+- 检查 ALIPAY_PUBLIC_KEY 是否正确（支付宝公钥，不是应用公钥）
+- 确保证书文件路径正确
+- 确保私钥格式包含 RSA 标识
+
+#### 订单状态未更新
+- 检查 ALIPAY_RETURN_URL 配置
+- 检查后端日志中的支付宝查询结果
+- 确保后端服务正常运行
+- 检查网络连接
+
+#### 类型转换错误
+- 后端：使用 `parseFloat(order.totalPrice)` 转换字符串为数字
+- 前端：使用 `parseFloat(order.totalPrice).toFixed(2)` 格式化金额
+
+### 支付接口文档
+
+#### 创建支付订单
+```
+POST /api/payment/create
+Headers: Authorization: Bearer <token>
+Body: {
+  "orderId": 14,
+  "returnUrl": "http://localhost:3000/api/payment/return"
+}
+Response: {
+  "message": "创建支付订单成功",
+  "payUrl": "https://openapi-sandbox.dl.alipaydev.com/gateway.do?..."
+}
+```
+
+#### 查询支付状态
+```
+GET /api/payment/query/14
+Headers: Authorization: Bearer <token>
+Response: {
+  "status": "paid",
+  "order": {
+    "id": 14,
+    "status": "paid",
+    "alipayTradeNo": "2026020422001494100508068377",
+    "paidAt": "2026-02-04T14:56:22.000Z"
+  }
+}
+```
+
+#### 申请退款
+```
+POST /api/payment/refund
+Headers: Authorization: Bearer <token>
+Body: {
+  "orderId": 14,
+  "refundAmount": "7709.00"
+}
+Response: {
+  "message": "退款成功",
+  "refundId": "..."
+}
+```
