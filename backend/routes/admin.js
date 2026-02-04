@@ -184,12 +184,36 @@ router.get('/orders', passport.authenticate('jwt', { session: false }), async (r
             return res.status(403).json({ message: '无权限访问此资源' });
         }
         const orders = await Order.findAll({
-            include: [{ model: Product, as: 'Product' }]
+            include: [
+                { model: Product, as: 'Product' },
+                { model: User, as: 'User', attributes: ['id', 'username', 'email'] }
+            ],
+            order: [['createdAt', 'DESC']]
         });
         return res.json(orders);
     } catch (err) {
         console.error('获取订单错误:', err);
         return res.status(500).json({ message: '获取订单失败', error: err.message });
+    }
+});
+
+// 获取用户地址列表（仅管理员可访问）
+router.get('/users/:userId/addresses', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        // 检查是否为管理员
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ message: '无权限访问此资源' });
+        }
+        const { userId } = req.params;
+        const Address = require('../models/Address');
+        const addresses = await Address.findAll({
+            where: { userId },
+            order: [['isDefault', 'DESC'], ['createdAt', 'DESC']]
+        });
+        return res.json(addresses);
+    } catch (err) {
+        console.error('获取用户地址错误:', err);
+        return res.status(500).json({ message: '获取用户地址失败', error: err.message });
     }
 });
 

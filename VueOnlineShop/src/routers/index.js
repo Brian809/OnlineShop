@@ -9,6 +9,7 @@ import Orders from '../views/Orders.vue';
 import Profile from '../views/Profile.vue';
 import UserManagement from '../views/admin/userManagement.vue';
 import ProductManagement from '../views/admin/productManagement.vue';
+import OrderManagement from '../views/admin/orderManagement.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -50,6 +51,12 @@ const router = createRouter({
       path: '/admin/products',
       name: 'ProductManagement',
       component: ProductManagement,
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/orders',
+      name: 'OrderManagement',
+      component: OrderManagement,
       meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
