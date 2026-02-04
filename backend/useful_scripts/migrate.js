@@ -21,7 +21,7 @@
 require('dotenv').config();
 
 const sequelize = require('../config/database');
-const { User, Product, Cart } = require('../models');
+const { User, Product, Cart, Order } = require('../models');
 
 // 解析命令行参数
 const args = process.argv.slice(2);
@@ -36,7 +36,7 @@ async function cleanupIndexes() {
     console.log('\n--- 清理重复索引 ---');
 
     // 从模型中动态获取表名，避免硬编码
-    const models = [User, Product, Cart];
+    const models = [User, Product, Cart, Order];
 
     for (const model of models) {
       const tableName = model.tableName;

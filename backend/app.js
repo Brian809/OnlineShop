@@ -20,6 +20,7 @@ const usersRouter = require('./routes/users');
 const adminRouter = require('./routes/admin');
 const normalFunctionsRouter = require('./routes/normalFunctions');
 const cartRouter = require('./routes/cart');
+const ordersRouter = require('./routes/orders');
 
 var app = express();
 
@@ -66,6 +67,8 @@ app.use('/api/users', usersRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/normal', normalFunctionsRouter);
 app.use('/api/cart',cartRouter );
+app.use('/api/orders', ordersRouter);
+
 
 
 // 健康检查

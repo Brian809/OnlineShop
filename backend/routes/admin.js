@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const User = require('../models/User');
 const Product = require('../models/Product');
+const Order = require('../models/Orders');
 require('dotenv').config();
 
 // 获取所有用户（仅管理员可访问）
@@ -112,61 +113,32 @@ router.delete('/users/:id', passport.authenticate('jwt', { session: false }), as
 router.put('/users/:id/toogleDisable', passport.authenticate('jwt', { session: false }), async (req, res) => {
 
     try {
-
         // 检查是否为管理员
-
         if (!req.user.isAdmin) {
-
             return res.status(403).json({ message: '无权限访问此资源' });
-
         }
-
-
-
-
-
         const userId = req.params.id;
-
         const user = await User.findByPk(userId);
-
-
-
         if (!user) {
-
             return res.status(404).json({ message: '用户未找到' });
-
         }
-
         if (user.isdisabled) {
-
             user.isdisabled = false;
-
         } else {
-
             user.isdisabled = true;
 
         }
-
         await user.save();
-
-
-
         return res.json({ message: '用户状态已切换', isdisabled: user.isdisabled });
-
     } catch (err) {
-
         console.error('禁用用户错误:', err);
-
         return res.status(500).json({ message: '禁用用户失败', error: err.message });
 
     }
 
 });
 
-
-
 // 加金币（仅管理员可访问）
-
 router.put('/users/:id/coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
 
     try {
@@ -189,28 +161,61 @@ router.put('/users/:id/coin', passport.authenticate('jwt', { session: false }), 
         }
 
         // 更新用户余额
-
         user.coin = parseFloat(amount);
-
         await user.save();
-
         return res.json({
-
             message: '修改金币成功',
             coin: user.coin
-
         });
 
     } catch (err) {
-
         console.error('修改金币错误:', err);
-
         return res.status(500).json({ message: '修改金币失败', error: err.message });
 
     }
 
 });
 
+// 获取所有订单（仅管理员可访问）
+router.get('/orders', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        // 检查是否为管理员
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ message: '无权限访问此资源' });
+        }
+        const orders = await Order.findAll({
+            include: [{ model: Product, as: 'Product' }]
+        });
+        return res.json(orders);
+    } catch (err) {
+        console.error('获取订单错误:', err);
+        return res.status(500).json({ message: '获取订单失败', error: err.message });
+    }
+});
 
+// 更新订单状态（仅管理员可访问），订单数据不可被删除，仅可更新状态
+router.put('/orders/:id/status', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        // 检查是否为管理员
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ message: '无权限访问此资源' });
+        }
+        const orderId = req.params.id;
+        const { status } = req.body;
+        if (!status) {
+            return res.status(400).json({ message: '订单状态不能为空' });
+        }
+        const order = await Order.findByPk(orderId);
+        if (!order) {
+            return res.status(404).json({ message: '订单未找到' });
+        }
+        order.status = status;
+        await order.save();
+        return res.json({ message: '订单状态已更新', status: order.status });
+    } catch (err) {
+        console.error('更新订单状态错误:', err);
+        return res.status(500).json({ message: '更新订单状态失败', error: err.message });
+    }
+});
 
 module.exports = router;
