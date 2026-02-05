@@ -28,9 +28,6 @@
               <el-form-item label="手机号">
                 <el-input v-model="userInfo.phone" placeholder="请输入手机号" />
               </el-form-item>
-              <el-form-item label="地址">
-                <el-input v-model="userInfo.address" type="textarea" :rows="3" placeholder="请输入地址" />
-              </el-form-item>
               <el-form-item>
                 <el-button type="primary" @click="handleUpdateInfo" :loading="loading">
                   保存修改

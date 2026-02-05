@@ -19,7 +19,7 @@
           </div>
         </div>
 
-        <el-table :data="orders" style="width: 100%" v-loading="loading">
+        <el-table :data="orders" class="desktop-view" style="width: 100%" v-loading="loading">
           <el-table-column prop="id" label="订单编号" width="100" />
           
           <el-table-column label="用户信息" width="150">
@@ -38,7 +38,7 @@
                 <img v-if="row.Product.image" :src="row.Product.image" :alt="row.Product.name" class="product-image" />
                 <div class="product-details">
                   <div class="product-name">{{ row.Product.name }}</div>
-                  <div class="product-price">¥{{ row.Product.price }}</div>
+                  <div class="product-price">¥{{ parseFloat(row.Product.price).toFixed(2) }}</div>
                 </div>
               </div>
               <span v-else>-</span>
@@ -49,7 +49,7 @@
 
           <el-table-column prop="totalPrice" label="总价" width="100" align="right">
             <template #default="{ row }">
-              <span class="price">¥{{ row.totalPrice }}</span>
+              <span class="price">¥{{ parseFloat(row.totalPrice).toFixed(2) }}</span>
             </template>
           </el-table-column>
 
@@ -123,6 +123,85 @@
           </el-table-column>
         </el-table>
 
+        <!-- 移动端：卡片视图 -->
+        <div v-if="!loading && orders.length > 0" class="mobile-view">
+          <div v-for="order in orders" :key="order.id" class="order-card-item">
+            <div class="order-header">
+              <span class="order-id">订单 #{{ order.id }}</span>
+              <el-tag :type="statusMap[order.status]?.type || 'info'" size="small">
+                {{ statusMap[order.status]?.label || order.status }}
+              </el-tag>
+            </div>
+
+            <div v-if="order.User" class="order-user">
+              <el-icon><User /></el-icon>
+              <span>{{ order.User.username }}</span>
+            </div>
+
+            <div v-if="order.Product" class="order-product">
+              <img :src="order.Product.image" :alt="order.Product.name" class="mobile-product-image" />
+              <div class="mobile-product-info">
+                <div class="mobile-product-name">{{ order.Product.name }}</div>
+                <div class="mobile-product-meta">
+                  <span class="mobile-quantity">× {{ order.quantity }}</span>
+                  <span class="mobile-price">¥{{ parseFloat(order.totalPrice).toFixed(2) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="order.receiverName" class="order-address">
+              <el-icon><Location /></el-icon>
+              <span>{{ order.receiverName }} {{ order.receiverPhone }}</span>
+            </div>
+
+            <div class="order-footer">
+              <span class="order-time">{{ formatDate(order.createdAt) }}</span>
+              <div class="order-actions">
+                <el-button
+                  v-if="order.status === 'pending'"
+                  type="success"
+                  size="small"
+                  @click="handleStatusChange(order, 'paid')"
+                >
+                  确认支付
+                </el-button>
+                <el-button
+                  v-if="order.status === 'paid'"
+                  type="primary"
+                  size="small"
+                  @click="handleStatusChange(order, 'shipped')"
+                >
+                  发货
+                </el-button>
+                <el-button
+                  v-if="order.status === 'shipped'"
+                  type="warning"
+                  size="small"
+                  @click="handleStatusChange(order, 'delivered')"
+                >
+                  确认送达
+                </el-button>
+                <el-button
+                  v-if="order.status === 'delivered'"
+                  type="success"
+                  size="small"
+                  @click="handleStatusChange(order, 'completed')"
+                >
+                  完成
+                </el-button>
+                <el-button
+                  v-if="order.status === 'pending'"
+                  type="danger"
+                  size="small"
+                  @click="handleCancelOrder(order)"
+                >
+                  取消
+                </el-button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <el-empty v-if="!loading && orders.length === 0" description="暂无订单数据" />
       </div>
     </div>
@@ -131,7 +210,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox, ElIcon } from 'element-plus';
+import { User, Location } from '@element-plus/icons-vue';
 import { get, post, patch } from '@/utils/api';
 import SlideNavigationBar from '@/components/admin/slideNavigationBar.vue';
 
@@ -350,5 +430,168 @@ onMounted(() => {
 .price {
   font-weight: 600;
   color: #f56c6c;
+}
+
+/* 桌面端：表格视图 */
+.desktop-view {
+  display: table;
+}
+
+/* 移动端：卡片视图 */
+.mobile-view {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.order-card-item {
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.order-id {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.order-user {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #606266;
+}
+
+.order-user .el-icon {
+  flex-shrink: 0;
+}
+
+.order-product {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.mobile-product-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+}
+
+.mobile-product-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.mobile-product-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.mobile-product-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-quantity {
+  font-size: 12px;
+  color: #909399;
+}
+
+.mobile-price {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f56c6c;
+}
+
+.order-address {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #606266;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-address .el-icon {
+  flex-shrink: 0;
+}
+
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.order-time {
+  font-size: 12px;
+  color: #909399;
+}
+
+.order-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* 响应式：小于 768px 显示卡片视图 */
+@media (max-width: 768px) {
+  .desktop-view {
+    display: none;
+  }
+
+  .mobile-view {
+    display: flex;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .header-actions .el-select {
+    width: 100% !important;
+  }
+
+  .header-actions .el-button {
+    width: 100%;
+  }
 }
 </style>

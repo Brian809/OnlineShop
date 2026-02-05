@@ -1,4 +1,5 @@
 <template>
+  <Navbar/>
   <div class="orders-page">
     <div class="container">
       <h1>我的订单</h1>
@@ -9,6 +10,7 @@
 
 <script setup>
 import OrderComponent from '@/components/order.vue';
+import Navbar from '@/components/navbar.vue';
 </script>
 
 <style scoped>

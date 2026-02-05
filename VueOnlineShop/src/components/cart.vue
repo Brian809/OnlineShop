@@ -105,29 +105,15 @@ function openCheckoutDialog() {
 
 // 结算功能
 async function handleCheckout() {
-  try {
-    // 只处理第一个商品（购物车批量下单时，每个商品单独创建订单）
-    const item = cartItems.value[0];
-    const order = await post('/orders/create', {
-      userId: userStore.user.id,
-      productId: item.productId,
-      quantity: item.quantity,
-      totalPrice: item.Product.price * item.quantity,
-      addressId: selectedAddressId.value || undefined
-    });
-
-    ElMessage.success('订单创建成功');
-    checkoutDialogVisible.value = false;
-    
-    // 从购物车中移除该商品
-    await del(`/cart/${item.id}`);
-    
-    // 跳转到支付页面
-    window.location.href = `/payment/${order.id}`;
-  } catch (error) {
-    console.error('结算失败:', error);
-    ElMessage.error(error.message || '结算失败');
+  if (cartItems.value.length === 0) {
+    ElMessage.warning('购物车为空');
+    return;
   }
+
+  // 跳转到订单确认页面（目前只支持单个商品结算）
+  const item = cartItems.value[0];
+  checkoutDialogVisible.value = false;
+  window.location.href = `/order/confirm?productId=${item.productId}&quantity=${item.quantity}`;
 }
 
 // 组件挂载时获取购物车数据（仅当用户已登录）

@@ -67,7 +67,6 @@ router.patch('/me', passport.authenticate('jwt', { session: false }), async (req
     if (firstName !== undefined) user.firstName = firstName;
     if (lastName !== undefined) user.lastName = lastName;
     if (phone !== undefined) user.phone = phone;
-    if (address !== undefined) user.address = address;
     if (pic !== undefined) user.pic = pic;
 
     await user.save();
@@ -81,7 +80,6 @@ router.patch('/me', passport.authenticate('jwt', { session: false }), async (req
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phone,
-        address: user.address,
         pic: user.pic
       }
     });

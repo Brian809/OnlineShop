@@ -8,7 +8,7 @@ import { ElMessage } from 'element-plus';
 
 const products = ref([]);
 const loading = ref(false);
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 // 获取图片 URL
 const getImageUrl = (image) => {

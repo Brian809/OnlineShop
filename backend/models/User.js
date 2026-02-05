@@ -33,9 +33,6 @@ const User = sequelize.define('User', {
   phone: {
     type: DataTypes.STRING
   },
-  address: {
-    type: DataTypes.TEXT
-  },
   isAdmin: {
     type: DataTypes.BOOLEAN,
     defaultValue: false

@@ -119,12 +119,12 @@ router.post('/create', passport.authenticate('jwt', { session: false }), async (
 router.get('/user/:userId', passport.authenticate('jwt', { session: false }), async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     // 权限验证
     if (req.user.id !== parseInt(userId)) {
       return res.status(403).json({ error: '无权访问此订单' });
     }
-    
+
     const orders = await Order.findAll({
       where: { userId },
       include: [
@@ -133,10 +133,41 @@ router.get('/user/:userId', passport.authenticate('jwt', { session: false }), as
       ],
       order: [['createdAt', 'DESC']]
     });
-    
+
     res.status(200).json(orders);
   } catch (error) {
     console.error('获取订单列表失败:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * 获取单个订单详情
+ */
+router.get('/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  try {
+    const orderId = req.params.id;
+
+    const order = await Order.findOne({
+      where: { id: orderId },
+      include: [
+        { model: Product, as: 'Product' },
+        { model: require('../models/Address'), as: 'Address' }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: '订单不存在' });
+    }
+
+    // 权限验证
+    if (req.user.id !== order.userId && !req.user.isAdmin) {
+      return res.status(403).json({ error: '无权访问此订单' });
+    }
+
+    res.status(200).json(order);
+  } catch (error) {
+    console.error('获取订单详情失败:', error);
     res.status(400).json({ error: error.message });
   }
 });

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { ElMessage, ElCard, ElTable, ElTableColumn, ElTag, ElEmpty } from 'element-plus';
+import { ElMessage, ElCard, ElTable, ElTableColumn, ElTag, ElEmpty, ElIcon } from 'element-plus';
+import { Location } from '@element-plus/icons-vue';
 import { get, useUserStore } from '@/utils/api';
 import { useRouter } from 'vue-router';
 
@@ -51,6 +52,11 @@ const goToProduct = (productId) => {
   router.push(`/product/${productId}`);
 };
 
+// 跳转到订单详情
+const goToOrderDetail = (orderId) => {
+  router.push(`/order/${orderId}`);
+};
+
 // 获取状态类型
 const getStatusType = (status) => {
   return statusMap[status]?.type || 'info';
@@ -80,7 +86,8 @@ onMounted(() => {
 
     <ElEmpty v-else-if="orders.length === 0" description="暂无订单" />
 
-    <ElTable v-else :data="orders" stripe style="width: 100%">
+    <!-- 桌面端：表格视图 -->
+    <ElTable v-if="!loading && orders.length > 0" class="desktop-view" :data="orders" stripe style="width: 100%">
       <ElTableColumn prop="id" label="订单编号" width="100" />
       
       <ElTableColumn label="商品信息" min-width="200">
@@ -105,7 +112,7 @@ onMounted(() => {
 
       <ElTableColumn prop="totalPrice" label="总价" width="100" align="right">
         <template #default="{ row }">
-          <span class="price">¥{{ row.totalPrice }}</span>
+          <span class="price">¥{{ parseFloat(row.totalPrice).toFixed(2) }}</span>
         </template>
       </ElTableColumn>
 
@@ -132,7 +139,7 @@ onMounted(() => {
       <ElTableColumn label="操作" width="150" align="center">
         <template #default="{ row }">
           <el-button
-            v-if="row.status === 'pending'"
+            v-if="row.status === 'pending' || row.status === 'paying'"
             type="primary"
             size="small"
             @click="goToPayment(row.id)"
@@ -140,12 +147,11 @@ onMounted(() => {
             去支付
           </el-button>
           <el-button
-            v-else-if="row.status === 'paid'"
-            type="success"
+            type="info"
             size="small"
-            disabled
+            @click="goToOrderDetail(row.id)"
           >
-            已支付
+            查看详情
           </el-button>
         </template>
       </ElTableColumn>
@@ -156,6 +162,51 @@ onMounted(() => {
         </template>
       </ElTableColumn>
     </ElTable>
+
+    <!-- 移动端：卡片视图 -->
+    <div v-if="!loading && orders.length > 0" class="mobile-view">
+      <div
+        v-for="order in orders"
+        :key="order.id"
+        class="order-card-item"
+        @click="goToOrderDetail(order.id)"
+      >
+        <div class="order-header">
+          <span class="order-id">订单 #{{ order.id }}</span>
+          <ElTag :type="statusMap[order.status]?.type || 'info'" size="small">
+            {{ statusMap[order.status]?.label || order.status }}
+          </ElTag>
+        </div>
+
+        <div v-if="order.Product" class="order-product">
+          <img :src="order.Product.image" :alt="order.Product.name" class="mobile-product-image" />
+          <div class="mobile-product-info">
+            <div class="mobile-product-name">{{ order.Product.name }}</div>
+            <div class="mobile-product-meta">
+              <span class="mobile-quantity">× {{ order.quantity }}</span>
+              <span class="mobile-price">¥{{ parseFloat(order.totalPrice).toFixed(2) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="order.receiverName" class="order-address">
+          <el-icon><Location /></el-icon>
+          <span>{{ order.receiverName }} {{ order.receiverPhone }}</span>
+        </div>
+
+        <div class="order-footer">
+          <span class="order-time">{{ new Date(order.createdAt).toLocaleString('zh-CN') }}</span>
+          <el-button
+            v-if="order.status === 'pending' || order.status === 'paying'"
+            type="primary"
+            size="small"
+            @click.stop="goToPayment(order.id)"
+          >
+            去支付
+          </el-button>
+        </div>
+      </div>
+    </div>
   </ElCard>
 </template>
 
@@ -176,6 +227,11 @@ onMounted(() => {
   text-align: center;
   padding: 40px;
   color: #909399;
+}
+
+/* 桌面端：表格视图 */
+.desktop-view {
+  display: table;
 }
 
 .product-info {
@@ -245,7 +301,127 @@ onMounted(() => {
   font-size: 12px;
 }
 
-:deep(.el-table) {
+/* 移动端：卡片视图 */
+.mobile-view {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-card-item {
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.order-card-item:active {
+  background: #f5f7fa;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.order-id {
   font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.order-product {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.mobile-product-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+}
+
+.mobile-product-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.mobile-product-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.mobile-product-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-quantity {
+  font-size: 12px;
+  color: #909399;
+}
+
+.mobile-price {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f56c6c;
+}
+
+.order-address {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #606266;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-address .el-icon {
+  flex-shrink: 0;
+}
+
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.order-time {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 响应式：小于 768px 显示卡片视图 */
+@media (max-width: 768px) {
+  .desktop-view {
+    display: none;
+  }
+
+  .mobile-view {
+    display: flex;
+  }
 }
 </style>

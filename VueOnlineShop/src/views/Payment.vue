@@ -202,7 +202,7 @@ const handlePay = async () => {
     // 创建支付订单
     const data = await post('/payment/create', {
       orderId: order.value.id,
-      returnUrl: 'http://localhost:3000/api/payment/return'
+      returnUrl: `${import.meta.env.VITE_BACKEND_URL}/api/payment/return`
     })
 
     if (data.payUrl) {

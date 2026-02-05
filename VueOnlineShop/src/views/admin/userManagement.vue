@@ -181,7 +181,6 @@
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="注册时间" :span="2">{{ formatDate(selectedUser.createdAt) }}</el-descriptions-item>
-          <el-descriptions-item label="地址" :span="2">{{ selectedUser.address || '-' }}</el-descriptions-item>
         </el-descriptions>
 
         <!-- 地址列表 -->

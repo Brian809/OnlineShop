@@ -76,19 +76,19 @@ router.get('/return', async (req, res) => {
     const { out_trade_no, trade_no, trade_status } = req.query;
 
     if (!out_trade_no) {
-      return res.redirect('http://localhost:5173/orders?error=invalid_return');
+      return res.redirect(`${process.env.FRONTEND_URL}/orders?error=invalid_return`);
     }
 
     // 查询订单
     const order = await Order.findByPk(out_trade_no);
 
     if (!order) {
-      return res.redirect('http://localhost:5173/orders?error=order_not_found');
+      return res.redirect(`${process.env.FRONTEND_URL}/orders?error=order_not_found`);
     }
 
     // 如果订单已经支付，直接跳转
     if (order.status === 'paid') {
-      return res.redirect(`http://localhost:5173/orders?success=true&orderId=${order.id}`);
+      return res.redirect(`${process.env.FRONTEND_URL}/orders?success=true&orderId=${order.id}`);
     }
 
     // 如果订单状态是 paying，主动查询支付宝支付状态
@@ -112,7 +112,7 @@ router.get('/return', async (req, res) => {
               alipayTradeNo: result.tradeNo,
               paidAt: new Date()
             });
-            return res.redirect(`http://localhost:5173/orders?success=true&orderId=${order.id}`);
+            return res.redirect(`${process.env.FRONTEND_URL}/orders?success=true&orderId=${order.id}`);
           }
         }
       } catch (error) {
@@ -120,13 +120,13 @@ router.get('/return', async (req, res) => {
       }
 
       // 查询失败或未支付，跳转到订单详情页继续轮询
-      return res.redirect(`http://localhost:5173/orders?pending=true&orderId=${order.id}`);
+      return res.redirect(`${process.env.FRONTEND_URL}/orders?pending=true&orderId=${order.id}`);
     }
 
-    return res.redirect('http://localhost:5173/orders?error=invalid_order_status');
+    return res.redirect(`${process.env.FRONTEND_URL}/orders?error=invalid_order_status`);
   } catch (error) {
     console.error('支付同步回调失败:', error);
-    return res.redirect('http://localhost:5173/orders?error=return_failed');
+    return res.redirect(`${process.env.FRONTEND_URL}/orders?error=return_failed`);
   }
 });
 
