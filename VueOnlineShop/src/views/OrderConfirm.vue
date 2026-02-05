@@ -295,13 +295,31 @@ const submitOrder = async () => {
       userId: userStore.user.id,
       productId: product.value.id,
       quantity: quantity.value,
-      totalPrice: totalPrice.value.toFixed(2)
+      totalPrice: totalPrice.value.toFixed(2),
+      addressId: selectedAddress.value.id
     });
 
+    console.log('订单创建成功:', order);
+    
+    // 从响应中提取订单对象
+    const orderData = order.order || order;
+    console.log('提取的订单对象:', orderData);
+    console.log('订单ID:', orderData.id);
+    
     ElMessage.success('订单创建成功');
-    router.push(`/payment/${order.id}`);
+    
+    // 检查订单ID是否存在
+    if (!orderData.id) {
+      ElMessage.error('订单ID不存在，无法跳转到支付页面');
+      console.error('订单对象缺少 id 字段:', orderData);
+      submitting.value = false;
+      return;
+    }
+    
+    router.push(`/payment/${orderData.id}`);
   } catch (error) {
-    ElMessage.error('创建订单失败');
+    console.error('创建订单失败:', error);
+    ElMessage.error(error.message || '创建订单失败');
   } finally {
     submitting.value = false;
   }

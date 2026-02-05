@@ -124,13 +124,17 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const orderId = ref(route.params.id)
+// 获取订单 ID，处理可能的字符串/数字类型
+const orderId = ref(route.params.id ? String(route.params.id) : null)
 const order = ref(null)
 const loading = ref(true)
 const paying = ref(false)
 const paymentSuccessVisible = ref(false)
 let countdownTimer = null
 let statusCheckTimer = null
+
+// 确保定时器被正确初始化
+const isPollingActive = ref(false)
 
 // 计算剩余时间
 const remainingTime = computed(() => {
@@ -154,29 +158,55 @@ const formatTime = (seconds) => {
 }
 
 // 获取订单详情
+
 const fetchOrder = async () => {
+
   try {
+
     loading.value = true
-    const data = await get(`/orders/user/${userStore.user.id}`)
-    const foundOrder = data.find(o => o.id === parseInt(orderId.value))
+
+    console.log('正在获取订单详情:', orderId.value)
+
+    const data = await get(`/orders/${orderId.value}`)
+
+    console.log('订单详情:', data)
+
     
-    if (!foundOrder) {
+
+    if (!data) {
+
       ElMessage.error('订单不存在')
+
       router.push('/orders')
+
       return
+
     }
 
-    order.value = foundOrder
+
+
+    order.value = data
+
+
 
     // 如果订单已支付，显示成功提示
+
     if (order.value.status === 'paid') {
+
       paymentSuccessVisible.value = true
+
       clearInterval(countdownTimer)
+
       clearInterval(statusCheckTimer)
+
     }
 
+
+
     // 如果订单已取消
+
     if (order.value.status === 'cancelled') {
+
       ElMessage.error('订单已取消')
       router.push('/orders')
     }
@@ -199,6 +229,11 @@ const handlePay = async () => {
   try {
     paying.value = true
 
+    // 启动状态轮询（在创建支付订单前启动，以便及时检测支付状态）
+    if (!statusCheckTimer) {
+      startStatusCheck()
+    }
+
     // 创建支付订单
     const data = await post('/payment/create', {
       orderId: order.value.id,
@@ -210,10 +245,10 @@ const handlePay = async () => {
       window.location.href = data.payUrl
     } else {
       ElMessage.error('创建支付订单失败')
+      paying.value = false
     }
   } catch (error) {
     ElMessage.error(error.message || '发起支付失败')
-  } finally {
     paying.value = false
   }
 }
@@ -260,6 +295,14 @@ const startCountdown = () => {
 
 // 轮询查询订单状态
 const startStatusCheck = () => {
+  if (isPollingActive.value) {
+    console.log('轮询已经在运行中，跳过')
+    return
+  }
+  
+  console.log('启动支付状态轮询')
+  isPollingActive.value = true
+  
   statusCheckTimer = setInterval(async () => {
     try {
       const data = await get(`/payment/query/${orderId.value}`)
@@ -270,14 +313,22 @@ const startStatusCheck = () => {
         paymentSuccessVisible.value = true
         clearInterval(countdownTimer)
         clearInterval(statusCheckTimer)
+        isPollingActive.value = false
       }
     } catch (error) {
-      console.error('查询支付状态失败:', error)
+      // 忽略"交易不存在"的错误（还未创建支付订单）
+      if (error.message && !error.message.includes('交易不存在')) {
+        console.error('查询支付状态失败:', error)
+      }
     }
   }, 3000) // 每3秒查询一次
 }
 
 onMounted(() => {
+  console.log('Payment 页面加载');
+  console.log('orderId:', orderId.value);
+  console.log('route.params.id:', route.params.id);
+  
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
     router.push('/login')
@@ -292,12 +343,20 @@ onMounted(() => {
 
   fetchOrder()
   startCountdown()
-  startStatusCheck()
+  // 不在这里启动状态轮询，而是在用户点击支付后启动
 })
 
 onUnmounted(() => {
-  clearInterval(countdownTimer)
-  clearInterval(statusCheckTimer)
+  console.log('Payment 页面卸载，清除定时器')
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+  if (statusCheckTimer) {
+    clearInterval(statusCheckTimer)
+    statusCheckTimer = null
+  }
+  isPollingActive.value = false
 })
 </script>
 

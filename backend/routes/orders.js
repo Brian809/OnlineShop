@@ -101,9 +101,12 @@ router.post('/create', passport.authenticate('jwt', { session: false }), async (
     
     await transaction.commit();
     
+    // 使用 toJSON() 确保 Sequelize 对象正确序列化
+    const orderData = order.toJSON();
+    
     res.status(201).json({
       message: '订单创建成功',
-      order,
+      order: orderData,
       expiresAt
     });
   } catch (error) {

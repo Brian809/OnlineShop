@@ -168,18 +168,13 @@ async function buyNow() {
     return;
   }
 
-  try {
-    const order = await post('/orders/create', {
-      userId: userStore.user.id,
+  // 跳转到订单确认页面
+  router.push({
+    path: '/order/confirm',
+    query: {
       productId: props.productId,
-      quantity: 1,
-      totalPrice: props.price
-    });
-    ElMessage.success('订单创建成功');
-    router.push(`/payment/${order.id}`);
-  } catch (error) {
-    console.error('创建订单失败:', error);
-    ElMessage.error(error.message || '创建订单失败');
-  }
+      quantity: 1
+    }
+  });
 }
 </script>

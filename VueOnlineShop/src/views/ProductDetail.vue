@@ -28,10 +28,10 @@
         
         <!-- 操作按钮 -->
         <div class="action-buttons">
-          <el-button type="warning" size="large" @click="addToCart">
+          <el-button type="warning" size="large" @click="addToCart" :disabled="loading || !product">
             加入购物车
           </el-button>
-          <el-button type="danger" size="large" @click="buyNow">
+          <el-button type="danger" size="large" @click="buyNow" :disabled="loading || !product">
             立即购买
           </el-button>
         </div>
@@ -140,6 +140,11 @@ async function buyNow() {
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录');
     router.push('/login');
+    return;
+  }
+
+  if (!product.value) {
+    ElMessage.warning('商品信息加载中，请稍候');
     return;
   }
 
