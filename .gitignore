@@ -64,3 +64,8 @@ backend/.env.local
 *.p7c
 *.p7r
 *.p7s
+
+# 支付环境变量导出文件
+backend/payment.env
+backend/generate-payment-env.sh
+backend/generate-payment-env-base64.sh
